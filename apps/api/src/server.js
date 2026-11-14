@@ -1,0 +1,23 @@
+import "dotenv/config";
+import express from "express";
+import session from "express-session";
+import pgSession from "connect-pg-simple";
+import pg from "pg";
+import crypto from "node:crypto";
+
+const {Pool}=pg;
+const app=express();
+const pool=new Pool({connectionString:process.env.DATABASE_URL});
+const PgStore=pgSession(session);
+const required=["DATABASE_URL","SESSION_SECRET","DISCORD_CLIENT_ID","DISCORD_CLIENT_SECRET","DISCORD_REDIRECT_URI","DASHBOARD_URL"];
+for(const key of required)if(!process.env[key])throw new Error(`Missing environment variable: ${key}`);
+app.set("trust proxy",1);
+app.use(express.json({limit:"32kb"}));
+app.use(session({store:new PgStore({pool,createTableIfMissing:true}),name:"smartboot.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",maxAge:8*60*60*1000}}));
+
+app.get("/health",async(_req,res)=>{try{await pool.query("SELECT 1");res.json({status:"ok",database:"connected"});}catch{res.status(503).json({status:"degraded",database:"unavailable"});}});
+app.get("/auth/discord",(req,res)=>{const state=crypto.randomBytes(24).toString("hex");req.session.oauthState=state;const url=new URL("https://discord.com/oauth2/authorize");url.search=new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,redirect_uri:process.env.DISCORD_REDIRECT_URI,response_type:"code",scope:"identify",state}).toString();res.redirect(url.toString());});
+app.get("/auth/discord/callback",async(req,res)=>{const {code,state,error}=req.query;if(error)return res.status(401).send("Discord sign-in was not completed.");if(!code||!state||state!==req.session.oauthState)return res.status(400).send("Invalid OAuth state.");delete req.session.oauthState;try{const tokenRes=await fetch("https://discord.com/api/oauth2/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,client_secret:process.env.DISCORD_CLIENT_SECRET,grant_type:"authorization_code",code:String(code),redirect_uri:process.env.DISCORD_REDIRECT_URI})});if(!tokenRes.ok)throw new Error("Discord token exchange failed");const token=await tokenRes.json();const userRes=await fetch("https://discord.com/api/users/@me",{headers:{Authorization:`Bearer ${token.access_token}`}});if(!userRes.ok)throw new Error("Discord identity lookup failed");const discord=await userRes.json();const client=await pool.connect();try{await client.query("BEGIN");const invite=await client.query("SELECT organization_id,role FROM organization_invitations WHERE discord_id=$1 AND accepted_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) FOR UPDATE",[discord.id]);if(!invite.rowCount){await client.query("ROLLBACK");return res.status(403).send("Your Discord account has not been invited to SmartBoot Response.");}const {organization_id,role}=invite.rows[0];const user=await client.query("INSERT INTO users(discord_id,username,global_name,avatar) VALUES($1,$2,$3,$4) ON CONFLICT(discord_id) DO UPDATE SET username=EXCLUDED.username,global_name=EXCLUDED.global_name,avatar=EXCLUDED.avatar RETURNING id",[discord.id,discord.username,discord.global_name??null,discord.avatar??null]);await client.query("INSERT INTO organization_members(organization_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT(organization_id,user_id) DO NOTHING",[organization_id,user.rows[0].id,role]);await client.query("UPDATE organization_invitations SET accepted_at=NOW() WHERE discord_id=$1 AND organization_id=$2",[discord.id,organization_id]);await client.query("COMMIT");req.session.user={id:user.rows[0].id,discordId:discord.id,organizationId:organization_id,role};}catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}req.session.save(err=>{if(err)return res.status(500).send("Could not create session.");res.redirect(process.env.DASHBOARD_URL);});}catch(e){console.error("[auth]",e.message);res.status(502).send("Discord sign-in failed.");}});
+app.get("/api/v1/me",(req,res)=>{if(!req.session.user)return res.status(401).json({error:"unauthorized"});res.json({user:req.session.user});});
+app.post("/auth/logout",(req,res)=>req.session.destroy(()=>res.status(204).end()));
+app.listen(Number(process.env.PORT)||3100,"0.0.0.0",()=>console.log(`SmartBoot API listening on ${process.env.PORT||3100}`));
