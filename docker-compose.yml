@@ -5,15 +5,34 @@ services:
     environment:
       POSTGRES_DB: smartboot
       POSTGRES_USER: smartboot
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - smartboot-postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL","pg_isready -U smartboot -d smartboot"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3100
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: smartboot
+      PGUSER: smartboot
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${API_PORT:-3100}:3100"
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   smartboot-postgres:
