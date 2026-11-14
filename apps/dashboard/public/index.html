@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101317">
+<title>SmartBoot Response</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="#"><span class="brand-mark">S</span><span><b>SMARTBOOT</b><small>RESPONSE</small></span></a>
+  <div class="org-label">WORKSPACE</div>
+  <button class="org-switch"><span class="org-icon">M</span><span id="orgName">My organization</span><span class="chevron">⌄</span></button>
+  <div class="nav-label">MONITORING</div>
+  <nav>
+    <button class="nav-item active" data-page="overview"><span>◫</span>Overview</button>
+    <button class="nav-item" data-page="incidents"><span>◎</span>Incidents</button>
+    <button class="nav-item" data-page="sites"><span>⌂</span>Sites & locations</button>
+    <button class="nav-item" data-page="panels"><span>▦</span>Panels</button>
+  </nav>
+  <div class="nav-label">MANAGEMENT</div>
+  <nav>
+    <button class="nav-item" data-page="contacts"><span>♧</span>Contacts</button>
+    <button class="nav-item" data-page="members"><span>♙</span>Members</button>
+    <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
+  </nav>
+  <div class="sidebar-bottom"><span class="status-dot"></span><span>SmartBoot services</span><b id="serviceState">Checking</b></div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <button class="mobile-menu" id="menuBtn" aria-label="Open navigation">☰</button>
+    <div class="crumb">Workspace <span>/</span> <b id="crumb">Overview</b></div>
+    <div class="top-actions"><button class="icon-btn" title="Refresh" id="refreshBtn">↻</button><button class="profile" id="profileBtn"><span class="avatar" id="avatar">S</span><span class="profile-name" id="profileName">Loading account…</span><span>⌄</span></button><div class="profile-menu hidden" id="profileMenu"><button id="logoutBtn">Sign out</button></div></div>
+  </header>
+  <section class="content">
+    <div class="welcome-row"><div><div class="eyebrow" id="today">SMARTBOOT RESPONSE</div><h1 id="pageTitle">Overview</h1><p id="pageDesc">Monitor your SmartBoot system from one place.</p></div><div class="welcome-actions"><span class="live-pill"><i></i> SYSTEM CONNECTED</span></div></div>
+    <div id="pageContent">
+      <div class="stat-grid">
+        <article class="stat-card"><div class="stat-top"><span>Active incidents</span><span class="stat-icon red">◎</span></div><strong>—</strong><small>Incident data not connected yet</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Sites</span><span class="stat-icon blue">⌂</span></div><strong>—</strong><small>Site management is coming next</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Panels online</span><span class="stat-icon green">▦</span></div><strong>—</strong><small>Panel telemetry is not connected yet</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Pending acknowledgments</span><span class="stat-icon amber">◷</span></div><strong>—</strong><small>Response workflow is coming next</small></article>
+      </div>
+      <div class="section-grid">
+        <article class="panel-card"><div class="card-heading"><div><h2>Recent incidents</h2><p>Latest activity across your organization</p></div><button class="text-btn" data-go="incidents">View all →</button></div><div class="empty-state"><span class="empty-icon">◎</span><b>No incident activity yet</b><p>When a SmartBoot panel reports an event, it will appear here.</p></div></article>
+        <article class="panel-card system-card"><div class="card-heading"><div><h2>System status</h2><p>Application connectivity</p></div><span class="status-tag good" id="apiBadge">Checking</span></div><div class="system-row"><span>Dashboard</span><b><i class="status-dot"></i> Operational</b></div><div class="system-row"><span>API</span><b id="apiStatus">Checking…</b></div><div class="system-row"><span>Database</span><b id="dbStatus">Checking…</b></div><div class="system-foot">Status reflects the current application health endpoint.</div></article>
+      </div>
+      <div class="notice"><span>✦</span><div><b>Your workspace is ready for setup</b><p>The dashboard shell and Discord account session are connected. Site, panel, contact, and incident management will be enabled as their API modules are implemented.</p></div></div>
+    </div>
+    <footer>SMARTBOOT RESPONSE <span>INDEPENDENT SYSTEM MONITORING</span></footer>
+  </section>
+</main>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
