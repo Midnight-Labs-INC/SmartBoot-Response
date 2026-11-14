@@ -4,6 +4,7 @@ import express from "express";
 import session from "express-session";
 import pgSession from "connect-pg-simple";
 import pg from "pg";
+import cors from "cors";
 import crypto from "node:crypto";
 
 const {Pool}=pg;
@@ -14,11 +15,24 @@ const PgStore=pgSession(session);
 const required=["SESSION_SECRET","DISCORD_CLIENT_ID","DISCORD_CLIENT_SECRET","DISCORD_REDIRECT_URI","DASHBOARD_URL"];
 for(const key of required)if(!process.env[key])throw new Error(`Missing environment variable: ${key}`);
 
+const dashboardOrigin=new URL(process.env.DASHBOARD_URL).origin;
+
 app.set("trust proxy",1);
+
+app.use(cors({
+  origin:dashboardOrigin,
+  credentials:true,
+  methods:["GET","POST","OPTIONS"],
+  allowedHeaders:["Content-Type"]
+}));
+
 app.use(express.json({limit:"32kb"}));
 
 app.use(session({
-  store:new PgStore({pool,createTableIfMissing:true}),
+  store:new PgStore({
+    pool,
+    createTableIfMissing:true
+  }),
   name:"smartboot.sid",
   secret:process.env.SESSION_SECRET,
   resave:false,
@@ -35,7 +49,8 @@ app.get("/health",async(_req,res)=>{
   try{
     await pool.query("SELECT 1");
     res.json({status:"ok",database:"connected"});
-  }catch{
+  }catch(e){
+    console.error("[health]",e.message);
     res.status(503).json({status:"degraded",database:"unavailable"});
   }
 });
@@ -46,6 +61,11 @@ app.get("/auth/discord",(req,res,next)=>{
 
   req.session.save(err=>{
     if(err)return next(err);
+
+    console.log("[auth] login started:",{
+      session:!!req.sessionID,
+      stateSaved:!!req.session.oauthState
+    });
 
     const url=new URL("https://discord.com/oauth2/authorize");
     url.search=new URLSearchParams({
@@ -62,18 +82,26 @@ app.get("/auth/discord",(req,res,next)=>{
 
 app.get("/auth/discord/callback",async(req,res)=>{
   const {code,state,error}=req.query;
+  const saved=req.session?.oauthState;
+
+  const validState=
+    typeof state==="string"&&
+    typeof saved==="string"&&
+    state.length===saved.length&&
+    crypto.timingSafeEqual(Buffer.from(state),Buffer.from(saved));
+
+  console.log("[auth] callback:",{
+    hasCode:typeof code==="string",
+    hasState:typeof state==="string",
+    hasCookie:!!req.headers.cookie,
+    hasSession:!!req.sessionID,
+    hasSavedState:typeof saved==="string",
+    matches:validState
+  });
 
   if(error)return res.status(401).send("Discord sign-in was not completed.");
 
-  const saved=req.session.oauthState;
-
-  if(
-    typeof code!=="string"||
-    typeof state!=="string"||
-    typeof saved!=="string"||
-    state.length!==saved.length||
-    !crypto.timingSafeEqual(Buffer.from(state),Buffer.from(saved))
-  ){
+  if(typeof code!=="string"||!validState){
     return res.status(400).send("Invalid OAuth state.");
   }
 
@@ -99,7 +127,7 @@ app.get("/auth/discord/callback",async(req,res)=>{
     const token=await tokenRes.json();
 
     if(!tokenRes.ok){
-      console.error("[auth] Discord OAuth error:",tokenRes.status,token.error,token.error_description);
+      console.error("[auth] Discord token error:",tokenRes.status,token.error);
       throw new Error("Discord token exchange failed");
     }
 
@@ -110,8 +138,8 @@ app.get("/auth/discord/callback",async(req,res)=>{
     if(!userRes.ok)throw new Error("Discord identity lookup failed");
 
     const discord=await userRes.json();
-
     const client=await pool.connect();
+
     let userId,organizations;
 
     try{
@@ -166,7 +194,9 @@ app.get("/auth/discord/callback",async(req,res)=>{
           );
 
           await client.query(
-            "UPDATE organization_invitations SET accepted_at=NOW() WHERE discord_id=$1 AND organization_id=$2",
+            `UPDATE organization_invitations
+             SET accepted_at=NOW()
+             WHERE discord_id=$1 AND organization_id=$2`,
             [discord.id,item.organization_id]
           );
         }
@@ -178,7 +208,6 @@ app.get("/auth/discord/callback",async(req,res)=>{
       }
 
       organizations=memberships.rows;
-
       await client.query("COMMIT");
     }catch(e){
       await client.query("ROLLBACK");
@@ -206,10 +235,10 @@ app.get("/auth/discord/callback",async(req,res)=>{
       req.session.save(err=>err?reject(err):resolve());
     });
 
-    res.redirect(process.env.DASHBOARD_URL);
-
+    console.log("[auth] login successful:",discord.id);
+    res.redirect(dashboardOrigin);
   }catch(e){
-    console.error("[auth]",e.message);
+    console.error("[auth] callback failed:",e);
     if(!res.headersSent)res.status(502).send("Discord sign-in failed.");
   }
 });
@@ -222,9 +251,20 @@ app.get("/api/v1/me",(req,res)=>{
 app.post("/auth/logout",(req,res)=>{
   req.session.destroy(err=>{
     if(err)return res.status(500).json({error:"logout_failed"});
-    res.clearCookie("smartboot.sid",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax"});
+
+    res.clearCookie("smartboot.sid",{
+      httpOnly:true,
+      secure:process.env.NODE_ENV==="production",
+      sameSite:"lax"
+    });
+
     res.status(204).end();
   });
+});
+
+app.use((err,_req,res,_next)=>{
+  console.error("[api] unhandled error:",err);
+  if(!res.headersSent)res.status(500).json({error:"internal_server_error"});
 });
 
 app.listen(Number(process.env.PORT)||3100,"0.0.0.0",()=>{
