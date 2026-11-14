@@ -52,6 +52,7 @@ const overviewMarkup=$("#pageContent").innerHTML;
 document.querySelectorAll(".nav-item").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.go)));
 $("#refreshBtn").addEventListener("click",()=>{loadAccount();loadHealth()});
+$("#statsRefresh").addEventListener("click",()=>{loadAccount();loadHealth()});
 $("#menuBtn").addEventListener("click",()=>$("#sidebar").classList.toggle("open"));
 $("#profileBtn").addEventListener("click",()=>$("#profileMenu").classList.toggle("hidden"));
 $("#logoutBtn").addEventListener("click",async()=>{await fetch("/auth/logout",{method:"POST",credentials:"same-origin"});location.href="/auth/discord"});
