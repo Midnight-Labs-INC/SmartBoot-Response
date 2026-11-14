@@ -7,9 +7,9 @@ import crypto from "node:crypto";
 
 const {Pool}=pg;
 const app=express();
-const pool=new Pool({connectionString:process.env.DATABASE_URL});
+const pool=new Pool();
 const PgStore=pgSession(session);
-const required=["DATABASE_URL","SESSION_SECRET","DISCORD_CLIENT_ID","DISCORD_CLIENT_SECRET","DISCORD_REDIRECT_URI","DASHBOARD_URL"];
+const required=["SESSION_SECRET","DISCORD_CLIENT_ID","DISCORD_CLIENT_SECRET","DISCORD_REDIRECT_URI","DASHBOARD_URL"];
 for(const key of required)if(!process.env[key])throw new Error(`Missing environment variable: ${key}`);
 app.set("trust proxy",1);
 app.use(express.json({limit:"32kb"}));
