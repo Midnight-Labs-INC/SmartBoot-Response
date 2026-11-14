@@ -11,7 +11,7 @@ const pages={
 async function loadAccount(){
  try{
   const r=await fetch("/api/v1/me",{credentials:"same-origin"});
-  if(r.status===401){location.href="/auth/discord";return}
+  if(r.status===401){location.href="/login";return}
   if(!r.ok)throw new Error("Account request failed");
   const d=await r.json(),u=d.user||d;
   const name=u.globalName||u.username||u.email||"Account";
@@ -55,6 +55,6 @@ $("#refreshBtn").addEventListener("click",()=>{loadAccount();loadHealth()});
 $("#statsRefresh").addEventListener("click",()=>{loadAccount();loadHealth()});
 $("#menuBtn").addEventListener("click",()=>$("#sidebar").classList.toggle("open"));
 $("#profileBtn").addEventListener("click",()=>$("#profileMenu").classList.toggle("hidden"));
-$("#logoutBtn").addEventListener("click",async()=>{await fetch("/auth/logout",{method:"POST",credentials:"same-origin"});location.href="/auth/discord"});
+$("#logoutBtn").addEventListener("click",async()=>{await fetch("/auth/logout",{method:"POST",credentials:"same-origin"});location.href="/login"});
 $("#today").textContent=new Intl.DateTimeFormat("en-US",{weekday:"long",month:"long",day:"numeric"}).format(new Date()).toUpperCase();
 loadAccount();loadHealth();
