@@ -80,6 +80,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 					if (new Date(row.cooldown) > new Date()) {
 						console.log("Cooldown")
 						reject("Cooldown");
+						return;
 					} else {
 						console.log("Not cooldown")
 						newCooldown = new Date();
@@ -108,6 +109,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 
 							runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-alert "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
 								console.log(`Alert sent to ${row.phone}`);
+								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
 							}).catch((error) => {
 								console.error(error);
@@ -124,6 +126,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 										} else if (row) {
 											runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-alert "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
 												console.log(`Alert sent to ${row.phone}`);
+											db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {
 												console.error(error);
 											});
