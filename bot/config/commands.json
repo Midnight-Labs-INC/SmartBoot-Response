@@ -13,13 +13,13 @@
     ]
   },
   {
-    "name": "confirm",
-    "description": "Verify your phone number using the six-digit code from your call.",
+    "name": "verify",
+    "description": "Activate your account using the six-digit code from your verification call.",
     "type": 1,
     "options": [
       {
         "name": "verification_code",
-        "description": "Six-digit verification code read to you during the phone call.",
+        "description": "Enter the six-digit code from your verification call.",
         "type": 3,
         "required": true
       }
