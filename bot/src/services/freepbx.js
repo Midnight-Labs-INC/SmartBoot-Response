@@ -56,4 +56,5 @@ async function originate(phone,audioFile){
   const action=["Action: Originate",`Channel: Local/${phone}@from-internal`,"Context: roblox","Exten: s","Priority: 1","Timeout: 30000",`CallerID: ${callerId}`,`Variable: AUDIO_FILE=${playback}`,"Async: true","ActionID: smartboot-"+Date.now()].join("\r\n");
   return ami(action);
 }
-module.exports={originate};
+async function checkConnection(){await ami('Action: Ping');return true;}
+module.exports={originate,checkConnection};
