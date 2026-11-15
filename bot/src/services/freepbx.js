@@ -21,7 +21,7 @@ function ami(action){
       for(const packet of packets){
         if(stage===1){
           if(!/Response: Success/i.test(packet)){return finish(new Error(`AMI login rejected: ${packet.slice(0,300)}`))}
-          stage=2;socket.write(action+"\r\n");
+          stage=2;socket.write(action+"\r\n\r\n");
         }else if(stage===2){
           if(/Response: Success/i.test(packet))finish(null,packet);
           else finish(new Error(`AMI originate failed: ${packet.slice(0,500)}`));
