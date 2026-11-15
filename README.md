@@ -30,6 +30,17 @@ Existing endpoints are retained:
 - `POST /api/v1/tts`
 - `/api/v1/websocket/:accountNumber`
 
+## Structure
+- `bot/src/index.js` — startup/wiring
+- `bot/src/discord.js` — Discord commands/events
+- `bot/src/api.js` — HTTP/WebSocket endpoints
+- `bot/src/database.js` — SQLite and migrations
+- `bot/src/alerts.js` — alert, TTS, verification flows
+- `bot/src/speech.js` — TTS text/template handling
+- `bot/src/runtime.js` — command/audio runtime
+- `bot/src/services/tts.js` — Piper engine
+- `bot/src/services/freepbx.js` — SFTP/AMI calls
+
 ## Commands
 - Logs: `docker compose logs -f`
 - Rebuild: `docker compose up -d --build`

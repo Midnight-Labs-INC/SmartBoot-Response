@@ -5,7 +5,8 @@
   "main": "bot/src/index.js",
   "scripts": {
     "start": "node bot/src/index.js",
-    "dev": "node --watch bot/src/index.js"
+    "dev": "node --watch bot/src/index.js",
+    "check": "node --check bot/src/index.js && node --check bot/src/database.js && node --check bot/src/runtime.js && node --check bot/src/speech.js && node --check bot/src/alerts.js && node --check bot/src/discord.js && node --check bot/src/api.js"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
