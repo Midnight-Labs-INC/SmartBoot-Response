@@ -1,0 +1,15 @@
+services:
+  smartboot-discordbot:
+    build: .
+    container_name: smartboot-discordbot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - smartboot-data:/app/data
+      - ./secrets:/run/secrets:ro
+    init: true
+
+volumes:
+  smartboot-data:

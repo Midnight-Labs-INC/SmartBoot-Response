@@ -84,20 +84,24 @@ function buildAlertSpeech(event, location, zoneNumber, zoneName) {
 	return sanitizeForTTS(ttsMessage.template.replace("{event}", event).replace("{location}", location).replace("{zone}", [zoneNumber, zoneName].filter(Boolean).join(" ")));
 }
 
+const {generateTTS}=require("./services/tts");
+const {originate}=require("./services/freepbx");
+
 function runCommand(command, stdin) {
-	return new Promise((resolve, reject) => {
-		const child = exec(command, (error, stdout, stderr) => {
-			if (error) {
-				console.error(`exec error: ${error}`);
-				reject(error);
-			} else {
-				resolve(stdout);
-			}
+	if(command.startsWith("elevenlabs ")){
+		const output=command.slice("elevenlabs ".length);
+		return generateTTS(stdin,output);
+	}
+	if(command.startsWith("/var/lib/asterisk/bin/originate ")){
+		const match=command.match(/^\/var\/lib\/asterisk\/bin\/originate\s+(\d+)\s+\S+\s+\S+\s+\S+\s+(\S+)/);
+		if(!match)return Promise.reject(new Error("Could not parse FreePBX originate request"));
+		return originate(match[1],match[2]+".wav");
+	}
+	return new Promise((resolve,reject)=>{
+		exec(command,(error,stdout)=>{
+			if(error)return reject(error);
+			resolve(stdout);
 		});
-		if (stdin) {
-			child.stdin.write(stdin);
-			child.stdin.end();
-		}
 	});
 }
 

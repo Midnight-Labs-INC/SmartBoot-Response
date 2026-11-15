@@ -50,3 +50,6 @@ data/*.db-shm
 data/*.db-wal
 tts/*
 !tts/.gitkeep
+
+# Deployment secrets
+secrets/
