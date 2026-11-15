@@ -10,5 +10,3 @@ CREATE TABLE IF NOT EXISTS alert_history (
   event_name TEXT NOT NULL,
   delivered_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_alert_history_account_time ON alert_history(account_id, delivered_at DESC);
-CREATE INDEX IF NOT EXISTS idx_alert_history_source_time ON alert_history(source_account_id, delivered_at DESC);
