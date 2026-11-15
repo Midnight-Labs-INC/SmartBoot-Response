@@ -90,7 +90,7 @@ const {generateTTS}=require("./services/tts");
 const {originate}=require("./services/freepbx");
 
 function runCommand(command, stdin) {
-	if(command.startsWith("elevenlabs ")){
+	if(command.startsWith("piper ")){
 		const output=command.slice("elevenlabs ".length);
 		return generateTTS(stdin,output);
 	}
@@ -326,38 +326,24 @@ function sendTTS(accountNumber, transaction, text) {
 }
 
 function sendVerificationCode(account) {
-	return new Promise((resolve, reject) => {
-		// Get verification code from database
-		db.get("SELECT * FROM accounts WHERE id = ?", account, (err, row) => {
-			if (err) {
-				console.error(err);
-			} else if (row) {
-				if (new Date(row.cooldown) > new Date()) {
-					reject("Cooldown");
-				} else {
-					newCooldown = new Date();
-					newCooldown.setMinutes(newCooldown.getMinutes() + 5);
-
-					db.run("UPDATE accounts SET cooldown = ? WHERE id = ?", newCooldown.toISOString(), accountNumber, (err) => {
-						if (err) {
-							console.error(err);
-						}
-					});
-				}
-				// Send verification code to phone number
-				runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${account}-code.wav`), `${process.env.CALL_PREFIX_TEXT} To verify your phone number, use the slash verify command on Discord. Your verification code is ${row.verification_code.split("").join(", ")}. Repeating, your code is ${row.verification_code.split("").join(", ")}. Once again, your code is ${row.verification_code.split("").join(", ")}`).then((output) => {
-					runCommand(`ffmpeg -y -i /tmp/${account}-code.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${account}-verification.wav`).then(() => {
-						runCommand(`rm /tmp/${account}-code.wav`)
-						// strip extension from filename
-
-						runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${account}-verification "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
-							console.log(`Verification code sent to ${row.phone}`);
-						})
-					})
-				})
-			} else {
-				return;
-				// Account does not exist or is not verified
+	return new Promise((resolve,reject) => {
+		db.get("SELECT * FROM accounts WHERE id = ?",account,async(err,row) => {
+			try {
+				if(err)throw err;
+				if(!row)throw new Error("Account not found");
+				if(new Date(row.cooldown)>new Date())throw new Error("Cooldown");
+				const cooldown=new Date(Date.now()+5*60*1000);
+				await new Promise((res,rej)=>db.run("UPDATE accounts SET cooldown = ? WHERE id = ?",cooldown.toISOString(),account,e=>e?rej(e):res()));
+				const source=`/tmp/${account}-code.wav`,audio=`/tmp/${account}-verification.wav`;
+				const digits=row.verification_code.split("").join(", ");
+				await generateTTS(`${process.env.CALL_PREFIX_TEXT} To verify your phone number, enter this code in Discord. Your verification code is ${digits}. Repeating, ${digits}.`,source);
+				await runFile("ffmpeg",["-y","-i",source,"-ar","8000","-ac","1","-c:a","pcm_s16le",audio]);
+				await fs.promises.unlink(source).catch(()=>{});
+				await originate(row.phone,audio);
+				console.log(`Verification code sent to ${row.phone}`);
+				resolve();
+			} catch(error) {
+				reject(error);
 			}
 		});
 	});
@@ -418,8 +404,8 @@ client.on("interactionCreate", async (interaction) => {
 				case "register":
 					phone_number = interaction.options.getString("phone_number");
 					// Check that phone_number is either a 4 digit number starting with 1, a 7 digit number, a 10 digit number, or an 11 digit number starting with 1
-					if (!/\b(?:\d{4}|\d{10}|\d{7}|1\d{10})\b/.test(phone_number)) {
-						interaction.reply({ ephemeral: true, content: "Invalid phone number. Please enter one of the following:\n- A 4 digit LiteNet extension.\n- A 7 digit TandmX number\n- An 10 digit US phone number.\n- An 11 digit US phone number" });
+					if(!/^(?:\d{2,6}|\d{7}|\d{10}|1\d{10})$/.test(phone_number)) {
+						interaction.reply({ ephemeral: true, content: "Invalid destination. Enter a 2–6 digit PBX extension, 7-digit local number, or 10/11-digit phone number." });
 						return;
 					}
 					// check that the user doesnt have any unverified accounts already (check discord_id and verified)
