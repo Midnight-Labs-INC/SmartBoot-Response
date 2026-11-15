@@ -8,7 +8,8 @@ const ws = expressWs(app);
 const port = process.env.PORT || 3000;
 const { exec } = require("child_process");
 const sqlite3 = require("sqlite3").verbose();
-const db = (fs.mkdirSync("./data",{recursive:true}),new sqlite3.Database("./data/database.db"));
+fs.mkdirSync("./data",{recursive:true});
+const db = new sqlite3.Database("./data/database.db");
 const ttsCommands = require("../config/tts.json");
 const ttsMessage = require("../config/tts-message.json");
 // Find all migrations .sql files in ./migrations, execute them in order
