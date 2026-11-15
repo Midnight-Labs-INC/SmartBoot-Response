@@ -1,3 +1,4 @@
+const demo=require("../../config/demo");
 module.exports=function(app,{db,client,sendAlert,sendDemo,sendTTS,generateTransactionNumber,colors}){
 app.post("/api/v1/alert", (req, res) => { // Legacy alert endpoint
 	console.log(req.body);
@@ -25,7 +26,7 @@ app.post("/api/v1/webhook/:brand/:accountNumber", (req, res) => {
 				console.log(`${colors.red("[ERROR]")} PlaceName: ${req.body.placeName.length} SystemName: ${req.body.systemName.length} ZoneName: ${req.body.zoneName.length} EventName: ${req.body.event.length}`);
 				res.status(400).send("Input too long");
 			}
-			if (req.params.accountNumber == "DEMOTEST") {
+			if (String(req.params.accountNumber) === String(demo.accountId)) {
 				// Generate the audio files, then post it to discord
 				sendDemo(req.params.accountNumber, req.body.transaction, req.body.placeName, req.body.systemName, req.body.zoneNumber, req.body.zoneName, req.body.event, req.body.placeId).then(() => {
 					res.status(204).send();
