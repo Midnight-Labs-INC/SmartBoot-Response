@@ -1,4 +1,7 @@
-const Discord=require("discord.js");const colors=require("colors");const {Routes}=Discord;module.exports=function(client,rest,commands,{db,ttsCommands,sendVerificationCode,generateAccountNumber,generatePhoneCode,app,port}){const startTime=new Date();
+const Discord=require("discord.js");const colors=require("colors");const {Routes}=Discord;module.exports=function(client,rest,commands,{db,ttsCommands,sendVerificationCode,generateAccountNumber,generatePhoneCode,app,port,checkConnection}){const startTime=new Date();
+const adminIds=(process.env.ADMIN_DISCORD_IDS||"").split(",").map(x=>x.trim()).filter(Boolean);
+const adminRoleIds=(process.env.ADMIN_ROLE_IDS||"").split(",").map(x=>x.trim()).filter(Boolean);
+const isAdmin=i=>adminIds.includes(i.user.id)||!!i.member?.roles?.cache?.some(role=>adminRoleIds.includes(role.id));
 client.on("ready", async () => {
 	//sendDemo("6371787150", generateTransactionNumber(), "KCA Product Showcase", "Building Security", 1, "Front Door", "alarm");
 	console.log(`${colors.cyan("[Discord]")} Logged in as ${client.user.tag}`);
@@ -46,6 +49,47 @@ client.on("interactionCreate", async (interaction) => {
 		case Discord.InteractionType.ApplicationCommand:
 
 			switch (interaction.commandName) {
+
+				case "alerts":
+					await interaction.deferReply({ephemeral:true});
+					db.all("SELECT h.* FROM alert_history h JOIN accounts a ON a.id=h.account_id WHERE a.discord_id=? ORDER BY h.delivered_at DESC LIMIT 10",interaction.user.id,(err,rows)=>{
+						if(err){console.error(err);return interaction.editReply("Could not load alert history. Please contact support.");}
+						if(!rows?.length)return interaction.editReply("No delivered alerts found for your accounts.");
+						const lines=rows.map(x=>"**"+x.event_name+"** — "+x.place_name+"\n"+x.system_name+" | Zone "+(x.zone_number||"")+" "+x.zone_name+"\n<t:"+Math.floor(new Date(x.delivered_at).getTime()/1000)+":R>").join("\n\n");
+						interaction.editReply({content:"**Your recent alerts**\n"+lines});
+					});
+					break;
+				case "admin":
+					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",ephemeral:true});
+					await interaction.deferReply({ephemeral:true});
+					db.get("SELECT COUNT(*) AS total,SUM(CASE WHEN verified=1 THEN 1 ELSE 0 END) AS verified,SUM(CASE WHEN verified=0 THEN 1 ELSE 0 END) AS pending FROM accounts",(err,stats)=>{
+						if(err){console.error(err);return interaction.editReply("Could not load administrator statistics.");}
+						db.all("SELECT transaction_id,account_id,event_name,place_name,delivered_at FROM alert_history ORDER BY delivered_at DESC LIMIT 5",(e,rows)=>{
+							if(e){console.error(e);return interaction.editReply("Could not load system activity.");}
+							const activity=rows?.length?rows.map(x=>"`"+x.account_id+"` • "+x.event_name+" at "+x.place_name+" • <t:"+Math.floor(new Date(x.delivered_at).getTime()/1000)+":R>").join("\n"):"No alert activity recorded.";
+							interaction.editReply("**SmartBoot Administration**\nAccounts: **"+(stats.total||0)+"**\nVerified: **"+(stats.verified||0)+"**\nPending: **"+(stats.pending||0)+"**\n\n**Recent activity**\n"+activity);
+						});
+					});
+					break;
+				case "lookup":
+					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",ephemeral:true});
+					await interaction.deferReply({ephemeral:true});
+					const lookup=interaction.options.getString("query").trim();
+					const digits=lookup.replace(/\D/g,"");
+					db.all("SELECT id,discord_id,phone,verified,ttsOverride FROM accounts WHERE CAST(id AS TEXT)=? OR discord_id=? OR phone LIKE ? ORDER BY id DESC LIMIT 10",lookup,lookup,"%"+(digits||lookup)+"%",(err,rows)=>{
+						if(err){console.error(err);return interaction.editReply("Account lookup failed.");}
+						if(!rows?.length)return interaction.editReply("No matching accounts found.");
+						const result=rows.map(x=>"**Account `"+x.id+"`**\nDiscord: `"+x.discord_id+"`\nPhone: `"+x.phone+"`\nStatus: "+(x.verified?"Verified":"Pending")).join("\n\n");
+						interaction.editReply({content:"**Account lookup**\n"+result});
+					});
+					break;
+				case "status":
+					await interaction.deferReply({ephemeral:true});
+					const dbOk=await new Promise(resolve=>db.get("SELECT 1 AS ok",err=>resolve(!err)));
+					const pbxOk=checkConnection?await checkConnection().then(()=>true).catch(()=>false):false;
+					const discordOk=client.isReady();
+					interaction.editReply("**SmartBoot Service Status**\nDiscord: "+(discordOk?"Online":"Offline")+"\nAPI: Online\nDatabase: "+(dbOk?"Connected":"Unavailable")+"\nFreePBX AMI: "+(pbxOk?"Connected":"Unavailable"));
+					break;
 				case "setup":
 					await interaction.deferReply({ephemeral:true});
 					phone_number = interaction.options.getString("phone_number");
@@ -79,7 +123,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "confirm":
+				case "verify":
 					verification_code = interaction.options.getString("verification_code");
 					db.get("SELECT * FROM accounts WHERE verification_code = ? AND verified = 0", verification_code, (err, row) => {
 						if (err) {
