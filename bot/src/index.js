@@ -99,9 +99,9 @@ function runCommand(command, stdin) {
 		if(!match)return Promise.reject(new Error("Could not parse FreePBX originate request"));
 		return originate(match[1],match[2]+".wav");
 	}
-	const convert=command.match(/^ffmpeg -y -i (\\S+) -ar 8000 -ac 1 -c:a pcm_s16le (\\S+)$/);
+	const convert=command.match(/^ffmpeg -y -i (\S+) -ar 8000 -ac 1 -c:a pcm_s16le (\S+)$/);
 	if(convert)return runFile("ffmpeg",["-y","-i",convert[1],"-ar","8000","-ac","1","-c:a","pcm_s16le",convert[2]]);
-	const remove=command.match(/^rm (\\/tmp\\/[a-zA-Z0-9._-]+)$/);
+	const remove=command.match(/^rm (\/tmp\/[a-zA-Z0-9._-]+)$/);
 	if(remove)return fs.promises.unlink(remove[1]);
 	return Promise.reject(new Error("Unsupported command: "+command.split(" ")[0]));
 }
