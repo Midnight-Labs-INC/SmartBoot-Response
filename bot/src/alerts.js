@@ -1,4 +1,4 @@
-const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/freepbx");const {buildAlertSpeech,sanitizeForTTS}=require("./speech");let handledTransactions=[];let client;
+const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/freepbx");const {buildAlertSpeech,sanitizeForTTS}=require("./speech");let handledTransactions=[];let client;
 function generateAccountNumber() {
 	let accountNumber = Math.floor(Math.random() * 10000000000);
 	db.get("SELECT * FROM accounts WHERE id = ?", accountNumber, (err, row) => {
@@ -33,7 +33,7 @@ function sendDemo(accountNumber, transaction, placeName, systemName, zoneNumber,
 					runCommand(`rm /tmp/${transaction}.wav`)
 					// strip extension from filename
 
-					client.channels.cache.get("1269078717552922745").send({
+					new (require("discord.js").WebhookClient)({url:demo.webhookUrl}).send({
 						embeds: [{
 							title: "Demo Alert",
 							description: `Place: [${placeName}](https://roblox.com/games/${placeId}/linkgenerator)\nSystem: ${systemName}\nZone: ${zoneNumber} - ${zoneName}\nEvent: ${event}`
