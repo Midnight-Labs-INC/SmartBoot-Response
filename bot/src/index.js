@@ -435,7 +435,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "verify":
+				case "confirm":
 					verification_code = interaction.options.getString("verification_code");
 					db.get("SELECT * FROM accounts WHERE verification_code = ? AND verified = 0", verification_code, (err, row) => {
 						if (err) {
@@ -539,7 +539,7 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									sendVerificationCode(accountNumber);
 									interaction.reply({
-										content: `Destination updated to ${phone_number}. A verification call is being placed now. Enter the six-digit code with `/verify` to reactivate this account.`,
+										content: `Destination updated to ${phone_number}. A verification call is being placed now. Enter the six-digit code with `/confirm` to reactivate this account.`,
 										ephemeral: true
 									});
 								}
