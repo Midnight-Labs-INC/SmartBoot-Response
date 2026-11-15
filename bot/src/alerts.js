@@ -150,6 +150,25 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 		}
 	});
 }
+
+function sendDemoTTS(accountNumber,transaction,text){
+ return new Promise(async(resolve,reject)=>{
+  const id=String(transaction).replace(/[^a-zA-Z0-9_-]/g,"");
+  if(!id)return reject(new Error("Invalid transaction ID"));
+  if(!demo.webhookUrl||demo.webhookUrl.includes("PUT_DISCORD_WEBHOOK_URL_HERE"))return reject(new Error("Demo Discord webhook is not configured"));
+  if(handledTransactions.includes(transaction))return resolve();
+  handledTransactions.push(transaction);
+  const source=`/tmp/${id}-demo-tts.wav`,audio=`/tmp/${id}-demo-tts-alert.wav`;
+  try{
+   await generateTTS(`${process.env.CALL_PREFIX_TEXT||""} ${sanitizeForTTS(text)}`.trim(),source);
+   await runFile("ffmpeg",["-y","-i",source,"-ar","8000","-ac","1","-c:a","pcm_s16le",audio]);
+   await fs.promises.unlink(source).catch(()=>{});
+   await new (require("discord.js").WebhookClient)({url:demo.webhookUrl}).send({embeds:[{title:"Demo Alert",description:String(text),footer:{text:`Account: ${accountNumber} • Transaction: ${transaction}`}}],files:[{attachment:audio,name:`${id}-tts.wav`}]});
+   resolve();
+  }catch(error){await fs.promises.unlink(source).catch(()=>{});reject(error);}
+  finally{await fs.promises.unlink(audio).catch(()=>{});}
+ });
+}
 function sendTTS(accountNumber, transaction, text) {
 	// Set textFiltered to a string safe for TTS input
 	const textFiltered = sanitizeForTTS(text)
@@ -239,4 +258,4 @@ function generatePhoneCode() {
 	// generate 6 digit
 	return Math.floor(100000 + Math.random() * 900000).toString();
 }
-function setClient(c){client=c}module.exports={generateAccountNumber,generateTransactionNumber,sendDemo,sendAlert,sendTTS,sendVerificationCode,generatePhoneCode,setClient};
+function setClient(c){client=c}module.exports={generateAccountNumber,generateTransactionNumber,sendDemo,sendDemoTTS,sendAlert,sendTTS,sendVerificationCode,generatePhoneCode,setClient};
