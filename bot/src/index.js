@@ -12,6 +12,7 @@ const runFile = promisify(execFile);
 const sqlite3 = require("sqlite3").verbose();
 fs.mkdirSync("./data",{recursive:true});
 const db = new sqlite3.Database("./data/database.db");
+db.run("CREATE TABLE IF NOT EXISTS verification_cooldowns (account_id TEXT PRIMARY KEY,cooldown TEXT NOT NULL)");
 const ttsCommands = require("../config/tts.json");
 const ttsMessage = require("../config/tts-message.json");
 // Find all migrations .sql files in ./migrations, execute them in order
@@ -331,15 +332,15 @@ function sendVerificationCode(account) {
 			try {
 				if(err)throw err;
 				if(!row)throw new Error("Account not found");
-				if(new Date(row.cooldown)>new Date())throw new Error("Cooldown");
+				const wait=await new Promise((res,rej)=>db.get("SELECT cooldown FROM verification_cooldowns WHERE account_id = ?",String(account),(e,r)=>e?rej(e):res(r&&new Date(r.cooldown)>new Date()?Math.ceil((new Date(r.cooldown)-Date.now())/1000):0)));if(wait)throw new Error("Cooldown:"+wait);
 				const source=`/tmp/${account}-code.wav`,audio=`/tmp/${account}-verification.wav`;
 				const digits=row.verification_code.split("").join(", ");
 				await generateTTS(`${process.env.CALL_PREFIX_TEXT} To verify your phone number, enter this code in Discord. Your verification code is ${digits}. Repeating, ${digits}.`,source);
 				await runFile("ffmpeg",["-y","-i",source,"-ar","8000","-ac","1","-c:a","pcm_s16le",audio]);
 				await fs.promises.unlink(source).catch(()=>{});
 				await originate(row.phone,audio);
-				const cooldown=new Date(Date.now()+5*60*1000);
-				await new Promise((res,rej)=>db.run("UPDATE accounts SET cooldown = ? WHERE id = ?",cooldown.toISOString(),account,e=>e?rej(e):res()));
+				const cooldown=new Date(Date.now()+60*1000);
+				await new Promise((res,rej)=>db.run("INSERT INTO verification_cooldowns (account_id,cooldown) VALUES (?,?) ON CONFLICT(account_id) DO UPDATE SET cooldown=excluded.cooldown",String(account),cooldown.toISOString(),e=>e?rej(e):res()));
 				console.log(`Verification code sent to ${row.phone}`);
 				resolve();
 			} catch(error) {
@@ -415,7 +416,7 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err);
 							interaction.editReply({content:"Database error. Please contact support."});
 						} else if (row) {
-							sendVerificationCode(row.id).then(() => interaction.editReply({content:`Verification call sent again to ${row.phone}. Enter the code using \`/verify\`.`})).catch(err=>interaction.editReply({content:err.message==="Cooldown"?"A verification call was sent recently. Please wait 5 minutes.":"We couldn't place your verification call. Check the phone number and try /resend again."}));
+							sendVerificationCode(row.id).then(() => interaction.editReply({content:`Verification call sent again to ${row.phone}. Enter the code using \`/verify\`.`})).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?"A verification call was sent recently. Please wait ${err.message.split(":")[1]||60} seconds before requesting another.":"We couldn't place your verification call. Check the phone number and try /resend again."}));
 						} else {
 							accountNumber = generateAccountNumber();
 							verification_code = generatePhoneCode();
@@ -425,16 +426,16 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									sendVerificationCode(accountNumber).then(() => {
 										interaction.editReply({
-											content: `Account created. Our system will call you shortly with a verification code. Please enter that code into \`/verify\``,
+											content: `Your account has been created. A verification call is being placed to your registered destination. Enter the six-digit code with \`/verify\``,
 											ephemeral: true
 										})
-									}).catch(err => interaction.editReply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+									}).catch(err => interaction.editReply({content:err.message==="Cooldown"?"A verification call was sent recently. Please wait ${err.message.split(":")[1]||60} seconds before resending.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 								}
 							});
 						}
 					});
 					break;
-				case "confirm":
+				case "verify":
 					verification_code = interaction.options.getString("verification_code");
 					db.get("SELECT * FROM accounts WHERE verification_code = ? AND verified = 0", verification_code, (err, row) => {
 						if (err) {
@@ -445,7 +446,7 @@ client.on("interactionCreate", async (interaction) => {
 									console.error(err);
 								} else {
 									interaction.reply({
-										content: `Account Verified! Your account number is \`${row.id}\`.\nFor help setting up the dialer, feel free to contact a member of staff!`,
+										content: `Your account is verified and ready to use. Account ID: \`${row.id}\`.\nFor help setting up the dialer, feel free to contact a member of staff!`,
 										ephemeral: true
 									})
 								}
@@ -464,7 +465,7 @@ client.on("interactionCreate", async (interaction) => {
 						} else if (row) {
 							sendVerificationCode(row.id).then(() => {
 								interaction.editReply({
-									content: `Verification code resent to ${row.phone}`,
+									content: `A new verification call has been placed to ${row.phone}. Enter the code with`,
 									ephemeral: true
 								});
 							}).catch(err=>interaction.editReply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
@@ -508,7 +509,7 @@ client.on("interactionCreate", async (interaction) => {
 											console.error(err);
 										} else {
 											interaction.reply({
-												content: "Account deactivated.",
+												content: "Account deleted successfully. Associated alert-forwarding links were also removed.",
 												ephemeral: true
 											});
 										}
@@ -559,7 +560,7 @@ client.on("interactionCreate", async (interaction) => {
 									console.error(err);
 								} else {
 									interaction.reply({
-										content: "Account creation cancelled.",
+										content: "Pending account setup cancelled. The unverified account has been deleted.",
 										ephemeral: true
 									});
 								}
@@ -596,7 +597,7 @@ client.on("interactionCreate", async (interaction) => {
 												if (err) {
 													console.error(err);
 												} else {
-													return interaction.reply({ content: "Accounts linked.", ephemeral: true });
+													return interaction.reply({ content: "Alert forwarding enabled successfully.", ephemeral: true });
 												}
 											});
 										}
@@ -627,7 +628,7 @@ client.on("interactionCreate", async (interaction) => {
 										if (err) {
 											console.error(err);
 										} else {
-											return interaction.reply({ content: "Accounts unlinked.", ephemeral: true });
+											return interaction.reply({ content: "Alert forwarding disabled successfully.", ephemeral: true });
 										}
 									});
 								} else {
@@ -650,7 +651,7 @@ client.on("interactionCreate", async (interaction) => {
 								linkList += `\`${row.linked_from}\` ➡ \`${row.linked_to}\`\n`;
 							});
 							interaction.reply({
-								content: `Linked accounts:\n${linkList}`,
+								content: `Your alert-forwarding links:\n${linkList}`,
 								ephemeral: true
 							});
 						} else {
@@ -672,7 +673,7 @@ client.on("interactionCreate", async (interaction) => {
 									console.error(err)
 									return interaction.reply({ content: "An error occured, Contact system administrator", ephemeral: true });
 								}
-								return interaction.reply({ content: "Changed!", ephemeral: true })
+								return interaction.reply({ content: "Alert voice updated successfully.", ephemeral: true })
 							})
 						}
 					})
