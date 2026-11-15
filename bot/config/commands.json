@@ -1,118 +1,120 @@
 [
-	{
-		"name": "register",
-		"description": "Register for a new account number",
-		"type": 1,
-		"options": [
-			{
-				"name": "phone_number",
-				"description": "The 10 digit US phone number to call when the system is triggered",
-				"type": 3,
-				"required": true
-			}
-		]
-	},
-	{
-		"name": "verify",
-		"description": "Verify the phone number on a new account",
-		"type": 1,
-		"options": [
-			{
-				"name": "verification_code",
-				"description": "The 6 digit verification code sent to the phone number",
-				"type": 3,
-				"required": true
-			}
-		]
-	},
-	{
-		"name": "update",
-		"description": "Update the phone number on an account",
-		"type": 1,
-		"options": [
-			{
-				"name": "account_number",
-				"description": "The account number to update",
-				"type": 3,
-				"required": true,
-				"autocomplete": true
-			},
-			{
-				"name": "phone_number",
-				"description": "The 10 digit US phone number to call when the system is triggered",
-				"type": 3,
-				"required": true
-			}
-		]
-	},
-	{
-		"name": "deactivate",
-		"description": "Deactivate an account",
-		"type": 1,
-		"options": [
-			{
-				"name": "account_number",
-				"description": "The account number to deactivate",
-				"type": 3,
-				"required": true,
-				"autocomplete": true
-			}
-		]
-	},
-	{
-		"name": "resend",
-		"description": "Resend the verification code",
-		"type": 1
-	},
-	{
-		"name": "list",
-		"description": "List all active accounts",
-		"type": 1
-	},
-	{
-		"name": "cancel",
-		"description": "Cancel verification and account number creation if you have one in-progress"
-	},
-	{
-		"name": "link",
-		"description": "Link two account numbers together so someone else can get calls for your account number too",
-		"type": 1,
-		"options": [
-			{
-				"name": "from",
-				"description": "Account number to receive alerts from",
-				"type": 3,
-				"required": true
-			},
-			{
-				"name": "to",
-				"description": "Account number to forward alerts to",
-				"type": 3,
-				"required": true
-			}
-		]
-	},
-	{
-		"name": "unlink",
-		"description": "Unlink two account numbers",
-		"type": 1,
-		"options": [
-			{
-				"name": "from",
-				"description": "Account number to receive alerts from",
-				"type": 3,
-				"required": true
-			},
-			{
-				"name": "to",
-				"description": "Account number to forward alerts to",
-				"type": 3,
-				"required": true
-			}
-		]
-	},
-	{
-		"name": "links",
-		"description": "Get a list of linked accounts tied to your discord account"
-	}
+  {
+    "name": "setup",
+    "description": "Create an account and receive an automated phone call to verify your number.",
+    "type": 1,
+    "options": [
+      {
+        "name": "phone_number",
+        "description": "Phone number or PBX extension that should receive alert calls.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "confirm",
+    "description": "Verify your phone number using the six-digit code from your call.",
+    "type": 1,
+    "options": [
+      {
+        "name": "verification_code",
+        "description": "Six-digit verification code read to you during the phone call.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "update-account",
+    "description": "Change an account's phone number and verify the new number.",
+    "type": 1,
+    "options": [
+      {
+        "name": "account_number",
+        "description": "Choose the verified account you want to change.",
+        "type": 3,
+        "required": true,
+        "autocomplete": true
+      },
+      {
+        "name": "phone_number",
+        "description": "New phone number or PBX extension to verify.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "remove-account",
+    "description": "Permanently delete one of your registered accounts and its links.",
+    "type": 1,
+    "options": [
+      {
+        "name": "account_number",
+        "description": "Choose the account you want to permanently delete.",
+        "type": 3,
+        "required": true,
+        "autocomplete": true
+      }
+    ]
+  },
+  {
+    "name": "resend-code",
+    "description": "Send another verification call for your pending account.",
+    "type": 1
+  },
+  {
+    "name": "accounts",
+    "description": "Show all verified accounts registered to your Discord user.",
+    "type": 1
+  },
+  {
+    "name": "cancel-setup",
+    "description": "Cancel your pending account setup and delete its unverified account.",
+    "type": 1
+  },
+  {
+    "name": "link-account",
+    "description": "Forward alerts from one of your accounts to another account you own.",
+    "type": 1,
+    "options": [
+      {
+        "name": "from",
+        "description": "Your account that will generate the alerts.",
+        "type": 3,
+        "required": true
+      },
+      {
+        "name": "to",
+        "description": "Your account that should also receive those alerts.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "unlink-account",
+    "description": "Stop forwarding alerts between two of your linked accounts.",
+    "type": 1,
+    "options": [
+      {
+        "name": "from",
+        "description": "The source account in the existing link.",
+        "type": 3,
+        "required": true
+      },
+      {
+        "name": "to",
+        "description": "The destination account in the existing link.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "account-links",
+    "description": "Show the alert-forwarding links configured for your accounts.",
+    "type": 1
+  }
 ]
