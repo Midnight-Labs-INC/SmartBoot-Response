@@ -426,14 +426,7 @@ client.on("interactionCreate", async (interaction) => {
 											content: `Account created. Our system will call you shortly with a verification code. Please enter that code into \`/verify\``,
 											ephemeral: true
 										})
-									}).catch(err => {
-										if (err == "Cooldown") {
-											interaction.reply({
-												content: "You are on cooldown, please wait before trying again.",
-												ephemeral: true
-											});
-										}
-									})
+									}).catch(err => interaction.reply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 								}
 							});
 						}
@@ -471,14 +464,7 @@ client.on("interactionCreate", async (interaction) => {
 									content: `Verification code resent to ${row.phone}`,
 									ephemeral: true
 								});
-							}).catch((err) => {
-								if (err == "Cooldown") {
-									interaction.reply({
-										content: "You are on cooldown, please wait before trying again.",
-										ephemeral: true
-									});
-								}
-							})
+							}).catch(err=>interaction.reply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 						} else {
 							interaction.reply({ ephemeral: true, content: "You don't have an unverified account." });
 						}
