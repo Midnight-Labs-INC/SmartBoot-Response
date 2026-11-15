@@ -402,10 +402,11 @@ client.on("interactionCreate", async (interaction) => {
 
 			switch (interaction.commandName) {
 				case "register":
+					await interaction.deferReply({ephemeral:true});
 					phone_number = interaction.options.getString("phone_number");
 					// Check that phone_number is either a 4 digit number starting with 1, a 7 digit number, a 10 digit number, or an 11 digit number starting with 1
 					if(!/^(?:\d{2,6}|\d{7}|\d{10}|1\d{10})$/.test(phone_number)) {
-						interaction.reply({ ephemeral: true, content: "Invalid destination. Enter a 2–6 digit PBX extension, 7-digit local number, or 10/11-digit phone number." });
+						interaction.editReply({ ephemeral: true, content: "Invalid destination. Enter a 2–6 digit PBX extension, 7-digit local number, or 10/11-digit phone number." });
 						return;
 					}
 					// check that the user doesnt have any unverified accounts already (check discord_id and verified)
@@ -413,7 +414,7 @@ client.on("interactionCreate", async (interaction) => {
 						if (err) {
 							console.error(err);
 						} else if (row) {
-							interaction.reply({ ephemeral: true, content: "You already have an unverified account. Please verify it before creating a new one." });
+							interaction.editReply({ ephemeral: true, content: "You already have an unverified account. Please verify it before creating a new one." });
 						} else {
 							accountNumber = generateAccountNumber();
 							verification_code = generatePhoneCode();
@@ -422,11 +423,11 @@ client.on("interactionCreate", async (interaction) => {
 									console.error(err);
 								} else {
 									sendVerificationCode(accountNumber).then(() => {
-										interaction.reply({
+										interaction.editReply({
 											content: `Account created. Our system will call you shortly with a verification code. Please enter that code into \`/verify\``,
 											ephemeral: true
 										})
-									}).catch(err => interaction.reply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+									}).catch(err => interaction.editReply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 								}
 							});
 						}
@@ -454,19 +455,20 @@ client.on("interactionCreate", async (interaction) => {
 					});
 					break;
 				case "resend":
+					await interaction.deferReply({ephemeral:true});
 					// Find the account thats unverified owned by the user
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND verified = 0", interaction.user.id, (err, row) => {
 						if (err) {
 							console.error(err);
 						} else if (row) {
 							sendVerificationCode(row.id).then(() => {
-								interaction.reply({
+								interaction.editReply({
 									content: `Verification code resent to ${row.phone}`,
 									ephemeral: true
 								});
-							}).catch(err=>interaction.reply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+							}).catch(err=>interaction.editReply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 						} else {
-							interaction.reply({ ephemeral: true, content: "You don't have an unverified account." });
+							interaction.editReply({ ephemeral: true, content: "You don't have an unverified account." });
 						}
 					});
 					break;
