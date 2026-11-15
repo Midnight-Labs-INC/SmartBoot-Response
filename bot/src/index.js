@@ -470,7 +470,7 @@ client.on("interactionCreate", async (interaction) => {
 								});
 							}).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 						} else {
-							interaction.editReply({ ephemeral: true, content: "You don't have an unverified account." });
+							interaction.editReply({ ephemeral: true, content: "No pending setup found. Run `/setup` to register a destination." });
 						}
 					});
 					break;
@@ -485,11 +485,11 @@ client.on("interactionCreate", async (interaction) => {
 								accountList += `\`${row.id}\` - \`${row.phone}\`\n`;
 							});
 							interaction.reply({
-								content: `Active accounts:\n${accountList}`,
+								content: `Your verified accounts:\n${accountList}`,
 								ephemeral: true
 							});
 						} else {
-							interaction.reply({ ephemeral: true, content: "You don't have any active accounts." });
+							interaction.reply({ ephemeral: true, content: "No verified accounts found. Run `/setup` to register one." });
 						}
 					});
 					break;
@@ -539,7 +539,7 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									sendVerificationCode(accountNumber);
 									interaction.reply({
-										content: `Account updated. Please verify your account by entering the verification code sent to ${phone_number}`,
+										content: `Destination updated to ${phone_number}. A verification call is being placed now. Enter the six-digit code with `/verify` to reactivate this account.`,
 										ephemeral: true
 									});
 								}
@@ -566,7 +566,7 @@ client.on("interactionCreate", async (interaction) => {
 								}
 							});
 						} else {
-							interaction.reply({ content: "You don't have an unverified account.", ephemeral: true });
+							interaction.reply({ content: "No pending setup found. Run `/setup` to register a destination.", ephemeral: true });
 						}
 					});
 					break;
@@ -588,10 +588,10 @@ client.on("interactionCreate", async (interaction) => {
 											console.error(err);
 										}
 										if (row) {
-											return interaction.reply({ content: "Those accounts are already linked.", ephemeral: true });
+											return interaction.reply({ content: "These accounts are already linked; no changes were made.", ephemeral: true });
 										} else {
 											if (accountNumberFrom == accountNumberTo) {
-												return interaction.reply({ content: "You can't link an account to itself.", ephemeral: true });
+												return interaction.reply({ content: "An account cannot forward alerts to itself.", ephemeral: true });
 											}
 											db.run("INSERT INTO links (linked_from, linked_to, discord_id) VALUES (?, ?, ?)", accountNumberFrom, accountNumberTo, interaction.user.id, (err) => {
 												if (err) {
@@ -655,7 +655,7 @@ client.on("interactionCreate", async (interaction) => {
 								ephemeral: true
 							});
 						} else {
-							interaction.reply({ content: "You don't have any linked accounts.", ephemeral: true });
+							interaction.reply({ content: "No alert-forwarding links are configured for your accounts.", ephemeral: true });
 						}
 					});
 					break;
@@ -666,7 +666,7 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err)
 						} else if (row) {
 							newVoice = interaction.options.getString("voice")
-							if (!ttsCommands[newVoice]) return interaction.reply({ content: "Thats not a valid option", ephemeral: true });
+							if (!ttsCommands[newVoice]) return interaction.reply({ content: "That voice option is not available. Please choose one of the listed voices.", ephemeral: true });
 							console.log(newVoice)
 							db.run("UPDATE accounts SET ttsOverride = ? WHERE id = ?", newVoice, accountNumber, (row, err) => {
 								if (err) {
