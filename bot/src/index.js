@@ -416,7 +416,7 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err);
 							interaction.editReply({content:"Database error. Please contact support."});
 						} else if (row) {
-							sendVerificationCode(row.id).then(() => interaction.editReply({content:`Verification call sent again to ${row.phone}. Enter the code using \`/verify\`.`})).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?"A verification call was sent recently. Please wait ${err.message.split(":")[1]||60} seconds before requesting another.":"We couldn't place your verification call. Check the phone number and try /resend again."}));
+							sendVerificationCode(row.id).then(() => interaction.editReply({content:`A verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to activate your account.`})).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Check the destination and try again."}));
 						} else {
 							accountNumber = generateAccountNumber();
 							verification_code = generatePhoneCode();
@@ -426,10 +426,10 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									sendVerificationCode(accountNumber).then(() => {
 										interaction.editReply({
-											content: `Your account has been created. A verification call is being placed to your registered destination. Enter the six-digit code with \`/verify\``,
+											content: `Your account has been created. A verification call is being placed to ${phone_number}. Enter the six-digit code with \`/verify\` to activate it.`,
 											ephemeral: true
 										})
-									}).catch(err => interaction.editReply({content:err.message==="Cooldown"?"A verification call was sent recently. Please wait ${err.message.split(":")[1]||60} seconds before resending.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+									}).catch(err => interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 								}
 							});
 						}
@@ -465,10 +465,10 @@ client.on("interactionCreate", async (interaction) => {
 						} else if (row) {
 							sendVerificationCode(row.id).then(() => {
 								interaction.editReply({
-									content: `A new verification call has been placed to ${row.phone}. Enter the code with`,
+									content: `A new verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to finish setup.`,
 									ephemeral: true
 								});
-							}).catch(err=>interaction.editReply({content:err.message==="Cooldown"?"You are on cooldown, please wait before trying again.":"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+							}).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
 						} else {
 							interaction.editReply({ ephemeral: true, content: "You don't have an unverified account." });
 						}
