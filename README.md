@@ -7,14 +7,14 @@ Discord bot and alert API. This branch connects to a separate FreePBX server usi
 2. Set `DISCORD_TOKEN` and the FreePBX AMI host, port, username, and secret. Piper and its US English voice are installed in the container.
 3. Create a dedicated SSH key for the SmartBoot VPS and add its public key to the FreePBX SFTP user's `authorized_keys`.
 4. Put the private key at `./secrets/pbx_ed25519` and run `chmod 600 secrets/pbx_ed25519`.
-5. Create the audio directory on FreePBX: `/var/lib/asterisk/sounds/smartboot`, owned/writable by the SFTP account. Ensure Asterisk can read the uploaded files.
-6. Create the matching directory under Asterisk sounds if needed and ensure the `roblox,s,1` dialplan uses `AUDIO_FILE` with Playback (without the file extension).
+5. The SFTP account is chrooted, so set `PBX_AUDIO_PATH=/home/smartboot-sftp` (the path visible inside its SFTP jail). Bind `/srv/sftp/smartboot-sftp/uploads` to `/var/lib/asterisk/sounds/smartboot` on FreePBX so uploaded files are also visible to Asterisk. Give the upload directory write access to `smartboot-sftp` and read access to the `asterisk` group.
+6. Ensure the `roblox,s,1` dialplan uses `AUDIO_FILE` with Playback (without the file extension).
 7. Start: `docker compose up -d --build`.
 
 The private key and `.env` are ignored by Git. Never commit API keys, AMI secrets, or SSH private keys.
 
 ## PBX extension and phone verification
-Registration accepts 2–6 digit PBX extensions as well as supported external phone-number formats. SmartBoot generates the verification prompt locally with Piper, uploads the WAV to FreePBX over SFTP, and originates a call to the saved destination. The existing `roblox,s,1` dialplan must play the `AUDIO_FILE` variable for the caller.
+Registration accepts 2–6 digit PBX extensions as well as supported external phone-number formats. SmartBoot generates the verification prompt locally with Piper, uploads the WAV to FreePBX over SFTP, and originates a call to the saved destination. The existing `roblox,s,1` dialplan must play the `AUDIO_FILE` variable for the caller. With the chrooted SFTP setup, uploads go to `/home/smartboot-sftp` inside the jail; bind the host upload directory to `/var/lib/asterisk/sounds/smartboot` so Asterisk can play them.
 
 ## FreePBX AMI
 Create a dedicated AMI manager account (example username: `smartboot`) with only the permissions required for Originate. In `manager.conf`/FreePBX manager settings, permit the SmartBoot VPS public IP only. Do not expose AMI to the whole internet. The default AMI port is 5038; use TLS only if you have configured AMI TLS on FreePBX and set `PBX_AMI_TLS=true`. Plain AMI TCP is not encrypted.
