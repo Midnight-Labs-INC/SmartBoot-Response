@@ -116,5 +116,33 @@
     "name": "account-links",
     "description": "Show the alert-forwarding links configured for your accounts.",
     "type": 1
+  },
+  {
+    "name": "alerts",
+    "description": "View your 10 most recent delivered phone alerts.",
+    "type": 1
+  },
+  {
+    "name": "admin",
+    "description": "View administrator account and system activity.",
+    "type": 1
+  },
+  {
+    "name": "lookup",
+    "description": "Find an account by account ID, Discord ID, or phone number.",
+    "type": 1,
+    "options": [
+      {
+        "name": "query",
+        "description": "Account ID, Discord user ID, or phone number.",
+        "type": 3,
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "status",
+    "description": "Check Discord, API, database, and FreePBX connectivity.",
+    "type": 1
   }
 ]
