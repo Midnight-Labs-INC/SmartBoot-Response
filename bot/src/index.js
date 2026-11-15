@@ -360,20 +360,20 @@ client.on("ready", async () => {
 
 	const commands = require("../config/commands.json");
 	commands.push({
-		name: "voice",
-		description: "Set the TTS voice for your account",
+		name: "set-voice",
+		description: "Choose the voice used when your account receives spoken alerts.",
 		type: 1,
 		options: [
 			{
 				"name": "account_number",
-				"description": "The account number to deactivate",
+				"description": "Choose the account whose alert voice you want to change.",
 				"type": 3,
 				"required": true,
 				"autocomplete": true
 			},
 			{
 				name: "voice",
-				description: "The voice to use for TTS",
+				description: "Voice used to speak alerts sent to your phone.",
 				type: 3,
 				required: true,
 				choices: ttsCommands
@@ -401,7 +401,7 @@ client.on("interactionCreate", async (interaction) => {
 		case Discord.InteractionType.ApplicationCommand:
 
 			switch (interaction.commandName) {
-				case "register":
+				case "setup":
 					await interaction.deferReply({ephemeral:true});
 					phone_number = interaction.options.getString("phone_number");
 					// Check that phone_number is either a 4 digit number starting with 1, a 7 digit number, a 10 digit number, or an 11 digit number starting with 1
@@ -434,7 +434,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "verify":
+				case "confirm":
 					verification_code = interaction.options.getString("verification_code");
 					db.get("SELECT * FROM accounts WHERE verification_code = ? AND verified = 0", verification_code, (err, row) => {
 						if (err) {
@@ -455,7 +455,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "resend":
+				case "resend-code":
 					await interaction.deferReply({ephemeral:true});
 					// Find the account thats unverified owned by the user
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND verified = 0", interaction.user.id, (err, row) => {
@@ -473,7 +473,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "list":
+				case "accounts":
 					// list all active accounts owned by the user
 					db.all("SELECT * FROM accounts WHERE discord_id = ? AND verified = 1", interaction.user.id, (err, rows) => {
 						if (err) {
@@ -492,7 +492,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "deactivate": // Deactivate an account
+				case "remove-account": // Deactivate an account
 					// Check that account_number is owned by the user, if it is, delete the row
 					accountNumber = interaction.options.getString("account_number");
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND id = ?", interaction.user.id, accountNumber, (err, row) => {
@@ -520,7 +520,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "update": // If the account is owned by the user and verified, update the phone number, unverify it, and send verification to the new number. Do the same checks as register
+				case "update-account": // If the account is owned by the user and verified, update the phone number, unverify it, and send verification to the new number. Do the same checks as register
 					accountNumber = interaction.options.getString("account_number");
 					phone_number = interaction.options.getString("phone_number");
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND id = ? AND verified = 1", interaction.user.id, accountNumber, (err, row) => {
@@ -548,7 +548,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "cancel": // Cancel an unverified account
+				case "cancel-setup": // Cancel an unverified account
 					// Check if the user has an unverified account, if they do, delete it
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND verified = 0", interaction.user.id, (err, row) => {
 						if (err) {
@@ -569,7 +569,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "link": // Link two account numbers together, only allow linking if both accounts are owned by the user and verified
+				case "link-account": // Link two account numbers together, only allow linking if both accounts are owned by the user and verified
 					// check that both account numbers from and to are owned by the user and verified
 					accountNumberFrom = interaction.options.getString("from");
 					accountNumberTo = interaction.options.getString("to");
@@ -611,7 +611,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "unlink": // Unlink two account numbers, only allow unlinking if both accounts are owned by the user
+				case "unlink-account": // Unlink two account numbers, only allow unlinking if both accounts are owned by the user
 					// check that from and to are owned by the user, and linked, if they are, delete the row
 					accountNumberFrom = interaction.options.getString("from");
 					accountNumberTo = interaction.options.getString("to");
@@ -639,7 +639,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "links": // a list of linked accounts owned by the user
+				case "account-links": // a list of linked accounts owned by the user
 					// get all linked accounts owned by the user
 					db.all("SELECT * FROM links WHERE discord_id = ?", interaction.user.id, (err, rows) => {
 						if (err) {
