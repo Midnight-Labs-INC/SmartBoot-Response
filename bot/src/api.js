@@ -1,5 +1,5 @@
 const demo=require("../../config/demo");
-module.exports=function(app,{db,client,sendAlert,sendDemo,sendTTS,generateTransactionNumber,colors}){
+module.exports=function(app,{db,client,sendAlert,sendDemo,sendDemoTTS,sendTTS,generateTransactionNumber,colors}){
 app.post("/api/v1/alert", (req, res) => { // Legacy alert endpoint
 	console.log(req.body);
 
@@ -61,7 +61,7 @@ app.post("/api/v1/tts", (req, res) => {
 	}
 	console.log(req.body);
 	// send no content response
-	sendTTS(req.body.accountNumber, req.body.transaction, req.body.text).then(() => {
+	(String(req.body.accountNumber) === String(demo.accountId) ? sendDemoTTS(req.body.accountNumber, req.body.transaction, req.body.text) : sendTTS(req.body.accountNumber, req.body.transaction, req.body.text)).then(() => {
 		res.status(204).send();
 	}).catch((error) => {
 		res.status(500).send(error);
