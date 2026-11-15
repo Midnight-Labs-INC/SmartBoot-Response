@@ -332,14 +332,14 @@ function sendVerificationCode(account) {
 				if(err)throw err;
 				if(!row)throw new Error("Account not found");
 				if(new Date(row.cooldown)>new Date())throw new Error("Cooldown");
-				const cooldown=new Date(Date.now()+5*60*1000);
-				await new Promise((res,rej)=>db.run("UPDATE accounts SET cooldown = ? WHERE id = ?",cooldown.toISOString(),account,e=>e?rej(e):res()));
 				const source=`/tmp/${account}-code.wav`,audio=`/tmp/${account}-verification.wav`;
 				const digits=row.verification_code.split("").join(", ");
 				await generateTTS(`${process.env.CALL_PREFIX_TEXT} To verify your phone number, enter this code in Discord. Your verification code is ${digits}. Repeating, ${digits}.`,source);
 				await runFile("ffmpeg",["-y","-i",source,"-ar","8000","-ac","1","-c:a","pcm_s16le",audio]);
 				await fs.promises.unlink(source).catch(()=>{});
 				await originate(row.phone,audio);
+				const cooldown=new Date(Date.now()+5*60*1000);
+				await new Promise((res,rej)=>db.run("UPDATE accounts SET cooldown = ? WHERE id = ?",cooldown.toISOString(),account,e=>e?rej(e):res()));
 				console.log(`Verification code sent to ${row.phone}`);
 				resolve();
 			} catch(error) {
@@ -413,8 +413,9 @@ client.on("interactionCreate", async (interaction) => {
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND verified = 0", interaction.user.id, (err, row) => {
 						if (err) {
 							console.error(err);
+							interaction.editReply({content:"Database error. Please contact support."});
 						} else if (row) {
-							interaction.editReply({ ephemeral: true, content: "You already have an unverified account. Please verify it before creating a new one." });
+							sendVerificationCode(row.id).then(() => interaction.editReply({content:`Verification call sent again to ${row.phone}. Enter the code using \`/verify\`.`})).catch(err=>interaction.editReply({content:err.message==="Cooldown"?"A verification call was sent recently. Please wait 5 minutes.":"We couldn't place your verification call. Check the phone number and try /resend again."}));
 						} else {
 							accountNumber = generateAccountNumber();
 							verification_code = generatePhoneCode();
