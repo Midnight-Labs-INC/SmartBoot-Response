@@ -91,7 +91,7 @@ const {originate}=require("./services/freepbx");
 
 function runCommand(command, stdin) {
 	if(command.startsWith("piper ")){
-		const output=command.slice("elevenlabs ".length);
+		const output=command.slice("piper ".length);
 		return generateTTS(stdin,output);
 	}
 	if(command.startsWith("/var/lib/asterisk/bin/originate ")){
