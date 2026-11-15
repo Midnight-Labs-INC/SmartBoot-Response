@@ -9,7 +9,8 @@ const port = process.env.PORT || 3000;
 const { exec } = require("child_process");
 const sqlite3 = require("sqlite3").verbose();
 const db = new sqlite3.Database("./database.db");
-const ttsCommands = require("./tts.json")
+const ttsCommands = require("./tts.json");
+const ttsMessage = require("./tts-message.json");
 // Find all migrations .sql files in ./migrations, execute them in order
 db.on("open", () => {
 	db.on("error", (err) => {
@@ -78,6 +79,10 @@ function sanitizeForTTS(input) {
 	return sanitized;
 }
 
+function buildAlertSpeech(event, location, zoneNumber, zoneName) {
+	return sanitizeForTTS(ttsMessage.template.replace("{event}", event).replace("{location}", location).replace("{zone}", [zoneNumber, zoneName].filter(Boolean).join(" ")));
+}
+
 function runCommand(command, stdin) {
 	return new Promise((resolve, reject) => {
 		const child = exec(command, (error, stdout, stderr) => {
@@ -130,7 +135,7 @@ function sendDemo(accountNumber, transaction, placeName, systemName, zoneNumber,
 			}
 			// Account exists and is verified
 			// Send the alert
-			runCommand(ttsCommands[0].command.replace("%s", `/tmp/${transaction}.wav`), `${process.env.CALL_PREFIX_TEXT} ${systemName} has reported a ${event}, ZONE ${zoneNumber}, ${zoneName}, at ${placeName}`).then((output) => {
+			runCommand(ttsCommands[0].command.replace("%s", `/tmp/${transaction}.wav`), buildAlertSpeech(event, placeName, zoneNumber, zoneName)).then((output) => {
 				runCommand(`ffmpeg -y -i /tmp/${transaction}.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${transaction}-alert.wav`).then(() => {
 					runCommand(`rm /tmp/${transaction}.wav`)
 					// strip extension from filename
@@ -204,7 +209,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 
 					// Account exists and is verified
 					// Send the alert
-					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), `${process.env.CALL_PREFIX_TEXT} ${systemName} has reported a ${event}, ZONE ${zoneNumber}, ${zoneName}, at ${placeName}`).then((output) => {
+					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), buildAlertSpeech(event, placeName, zoneNumber, zoneName)).then((output) => {
 						runCommand(`ffmpeg -y -i /tmp/${transaction}.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${transaction}-alert.wav`).then(() => {
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
