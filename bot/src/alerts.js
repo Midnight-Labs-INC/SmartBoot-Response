@@ -192,6 +192,7 @@ function sendTTS(accountNumber, transaction, text) {
 
 							runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-tts "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
 								console.log(`TTS sent to ${row.phone}`);
+								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
 							}).catch((error) => {
 								console.error(error);
@@ -208,6 +209,7 @@ function sendTTS(accountNumber, transaction, text) {
 										} else if (row) {
 											runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-tts "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
 												console.log(`TTS sent to ${row.to}`);
+												db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {
 												console.error(error);
 											});
