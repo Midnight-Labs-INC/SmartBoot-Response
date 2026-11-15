@@ -30,6 +30,10 @@ Built by **Midnight Labs**.
 | `/unlink-account` | Remove an alert-forwarding link. |
 | `/account-links` | View your forwarding links. |
 | `/set-voice` | Choose your alert voice. |
+| `/alerts` | View your 10 most recent delivered alerts. |
+| `/admin` | View account totals and recent system activity (administrators only). |
+| `/lookup` | Search by account ID, Discord ID, or phone number (administrators only). |
+| `/status` | Check Discord, API, database, and FreePBX AMI connectivity. |
 
 ## How it works
 
@@ -89,9 +93,13 @@ docker compose up -d --build
 
 See `.env.example` for the available environment variables. Keep `.env`, webhook URLs, AMI credentials, and private SSH keys out of source control.
 
+## Administrator access
+
+Set `ADMIN_DISCORD_IDS` and/or `ADMIN_ROLE_IDS` in `.env` to comma-separated Discord user IDs and role IDs. Only matching users can run `/admin` and `/lookup`; lookup results are private. Leave both unset to disable administrator commands.
+
 ## Data and operations
 
-SQLite data is stored in the `smartboot-data` Docker volume.
+SQLite data is stored in the `smartboot-data` Docker volume. Delivered alerts are recorded in the database for `/alerts` and `/admin`. History starts accumulating after this version is deployed; older alerts are not backfilled.
 
 Useful commands:
 
@@ -111,17 +119,6 @@ docker compose down
 - Use HTTPS for public API traffic.
 - Never commit secrets, tokens, webhook URLs, or private keys.
 - Back up the persistent database volume.
-
-## Roadmap
-
-Planned improvements include:
-
-- Personal alert history through `/alerts`.
-- An administrator dashboard through `/admin`.
-- Account search by Discord ID, phone number, or account ID.
-- Expanded service health reporting through `/status`, including Discord, API, database, and FreePBX connectivity.
-
-Roadmap items are not necessarily available in the current release.
 
 ## License
 
