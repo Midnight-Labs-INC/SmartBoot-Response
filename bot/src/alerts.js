@@ -163,7 +163,7 @@ function sendDemoTTS(accountNumber,transaction,text){
    await generateTTS(`${process.env.CALL_PREFIX_TEXT||""} ${sanitizeForTTS(text)}`.trim(),source);
    await runFile("ffmpeg",["-y","-i",source,"-ar","8000","-ac","1","-c:a","pcm_s16le",audio]);
    await fs.promises.unlink(source).catch(()=>{});
-   await new (require("discord.js").WebhookClient)({url:demo.webhookUrl}).send({embeds:[{title:"Demo Alert",description:String(text),footer:{text:`Account: ${accountNumber} • Transaction: ${transaction}`}}],files:[{attachment:audio,name:`${id}-tts.wav`}]});
+   await new (require("discord.js").WebhookClient)({url:demo.webhookUrl}).send({embeds:[{title:"Demo Alert",description:String(text)}],files:[{attachment:audio,name:`${id}-tts.wav`}]});
    resolve();
   }catch(error){await fs.promises.unlink(source).catch(()=>{});reject(error);}
   finally{await fs.promises.unlink(audio).catch(()=>{});}
