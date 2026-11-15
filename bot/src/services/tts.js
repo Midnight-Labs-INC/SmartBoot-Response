@@ -2,8 +2,8 @@ const {spawn}=require("child_process");
 function generateTTS(text,output){
 	return new Promise((resolve,reject)=>{
 		const model=process.env.PIPER_MODEL||"/app/models/en_US-lessac-medium.onnx";
-		const config=process.env.PIPER_CONFIG||model+".json";
-		const child=spawn(process.env.PIPER_BIN||"/opt/piper/bin/piper",["--model",model,"--config",config,"--output_file",output]);
+		
+		const child=spawn(process.env.PIPER_BIN||"/opt/piper/bin/piper",["--model",model,"--output_file",output]);
 		let error="";
 		child.stderr.on("data",chunk=>error+=chunk);
 		child.on("error",reject);
