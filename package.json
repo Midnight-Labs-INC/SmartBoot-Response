@@ -1,7 +1,7 @@
 {
-  "name": "alarm-monitoring",
+  "name": "smartboot-discordbot",
   "version": "1.0.0",
-  "description": "",
+  "description": "SmartBoot Response Discord bot and alert service",
   "main": "bot/src/index.js",
   "scripts": {
     "start": "node bot/src/index.js",
