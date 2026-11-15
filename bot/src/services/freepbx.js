@@ -33,7 +33,7 @@ function ami(action){
 
 function upload(host,user,key,port,local,remote){
   return new Promise((resolve,reject)=>{
-    const child=spawn("sftp",["-P",String(port),"-i",key,"-oBatchMode=yes","-oStrictHostKeyChecking=accept-new",`${user}@${host}`]);
+    const child=spawn("sftp",["-P",String(port),"-i",key,"-oBatchMode=yes","-oStrictHostKeyChecking=accept-new","-b","-",`${user}@${host}`]);
     let error="";
     child.stderr.on("data",chunk=>error+=chunk);
     child.on("error",reject);
