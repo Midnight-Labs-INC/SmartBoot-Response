@@ -46,7 +46,7 @@ async function originate(phone,audioFile){
   const host=process.env.PBX_SFTP_HOST||process.env.PBX_HOST;
   const user=process.env.PBX_SFTP_USERNAME,key=process.env.PBX_SFTP_PRIVATE_KEY;
   const port=Number(process.env.PBX_SFTP_PORT||22);
-  const dir=(process.env.PBX_AUDIO_PATH||"/var/lib/asterisk/sounds/smartboot").replace(/[^a-zA-Z0-9_\/-]/g,"");
+  const dir=(process.env.PBX_AUDIO_PATH||"/home/smartboot-sftp").replace(/[^a-zA-Z0-9_\/-]/g,"");
   if(!host||!user||!key)return Promise.reject(new Error("PBX_SFTP_USERNAME and PBX_SFTP_PRIVATE_KEY are required for audio upload"));
   if(!/^\d{3,15}$/.test(String(phone)))throw new Error("Invalid destination phone number");
   const name=path.basename(audioFile),remote=`${dir}/${name}`;
