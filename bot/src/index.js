@@ -6,7 +6,9 @@ const expressWs = require("express-ws");
 const app = express();
 const ws = expressWs(app);
 const port = process.env.PORT || 3000;
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const runFile = promisify(execFile);
 const sqlite3 = require("sqlite3").verbose();
 fs.mkdirSync("./data",{recursive:true});
 const db = new sqlite3.Database("./data/database.db");
@@ -97,12 +99,11 @@ function runCommand(command, stdin) {
 		if(!match)return Promise.reject(new Error("Could not parse FreePBX originate request"));
 		return originate(match[1],match[2]+".wav");
 	}
-	return new Promise((resolve,reject)=>{
-		exec(command,(error,stdout)=>{
-			if(error)return reject(error);
-			resolve(stdout);
-		});
-	});
+	const convert=command.match(/^ffmpeg -y -i (\\S+) -ar 8000 -ac 1 -c:a pcm_s16le (\\S+)$/);
+	if(convert)return runFile("ffmpeg",["-y","-i",convert[1],"-ar","8000","-ac","1","-c:a","pcm_s16le",convert[2]]);
+	const remove=command.match(/^rm (\\/tmp\\/[a-zA-Z0-9._-]+)$/);
+	if(remove)return fs.promises.unlink(remove[1]);
+	return Promise.reject(new Error("Unsupported command: "+command.split(" ")[0]));
 }
 
 // runcommand but i can pass stdin as an argument
