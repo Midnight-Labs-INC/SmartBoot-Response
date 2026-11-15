@@ -658,7 +658,7 @@ client.on("interactionCreate", async (interaction) => {
 						}
 					});
 					break;
-				case "voice":
+				case "set-voice":
 					accountNumber = interaction.options.getString("account_number");
 					db.get("SELECT * FROM accounts WHERE id = ?;", accountNumber, (err, row) => {
 						if (err) {
