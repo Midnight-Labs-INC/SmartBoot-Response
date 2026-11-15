@@ -2,9 +2,10 @@
   "name": "alarm-monitoring",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "bot/src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node bot/src/index.js",
+    "dev": "node --watch bot/src/index.js"
   },
   "author": "",
   "license": "GPL-3.0-or-later",
