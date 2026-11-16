@@ -1,5 +1,27 @@
+const fs=require("fs");
+const path=require("path");
 const demo=require("../../config/demo");
+function markdownToHtml(markdown){
+ const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+ const inline=s=>esc(s).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" rel="noopener noreferrer">$1</a>').replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>").replace(/`(.+?)`/g,"<code>$1</code>");
+ const out=[];let p=[],list=false;
+ const closeList=()=>{if(list){out.push("</ul>");list=false;}};
+ const closeP=()=>{if(p.length){out.push("<p>"+inline(p.join(" "))+"</p>");p=[];}};
+ for(const line of markdown.split(/\r?\n/)){
+  if(!line.trim()){closeP();closeList();continue;}
+  const h=line.match(/^(#{1,6})\s+(.+)$/);
+  if(h){closeP();closeList();const n=h[1].length;out.push("<h"+n+">"+inline(h[2])+"</h"+n+">");continue;}
+  if(/^---+$/.test(line.trim())){closeP();closeList();out.push("<hr>");continue;}
+  const li=line.match(/^\s*-\s+(.+)$/);
+  if(li){closeP();if(!list){out.push("<ul>");list=true;}out.push("<li>"+inline(li[1])+"</li>");continue;}
+  closeList();p.push(line.trim());
+ }
+ closeP();closeList();return out.join("\n");
+}
 module.exports=function(app,{db,client,sendAlert,sendDemo,sendDemoTTS,sendTTS,generateTransactionNumber,colors}){
+const policyPage=(file,title)=>{const markdown=fs.readFileSync(path.join(__dirname,"../../",file),"utf8");return "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"theme-color\" content=\"#101010\"><title>"+title+" | SmartBoot Response</title><style>*{box-sizing:border-box}body{margin:0;background:#101010;color:#e8e8e8;font:16px/1.7 system-ui,-apple-system,Segoe UI,sans-serif}header,main,footer{width:min(860px,calc(100% - 36px));margin:auto}header{padding:28px 0 12px;border-bottom:1px solid #303030}header a,footer a{color:#aaa;text-decoration:none}main{padding:28px 0 56px}h1,h2,h3{line-height:1.25;color:#fff}h1{font-size:2rem}h2{margin-top:2rem;font-size:1.35rem}a{color:#9ecbff}p,li{color:#d0d0d0}li{margin:.35rem 0}hr{border:0;border-top:1px solid #333;margin:24px 0}footer{padding:18px 0 32px;border-top:1px solid #303030;color:#999;font-size:.9rem}strong{color:#fff}</style></head><body><header><a href=\"/\">SmartBoot Response</a> · <a href=\"/TOS\">Terms</a> · <a href=\"/Privacy\">Privacy</a></header><main>"+markdownToHtml(markdown)+"</main><footer>Operated by <a href=\"https://midnightlabs.tech\">Midnight Labs</a> · <a href=\"mailto:hello@midnightlabs.tech\">hello@midnightlabs.tech</a></footer></body></html>";};
+app.get("/TOS",(req,res)=>res.type("html").send(policyPage("TOS.md","Terms of Use")));
+app.get("/Privacy",(req,res)=>res.type("html").send(policyPage("PRIVACY.md","Privacy Policy")));
 app.post("/api/v1/alert", (req, res) => { // Legacy alert endpoint
 	console.log(req.body);
 
