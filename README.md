@@ -1,107 +1,100 @@
 # SmartBoot Response
 
-**SmartBoot Response** is a Discord-connected alerting and phone notification service for SmartBoot systems. It connects Discord account management with a FreePBX telephony backend, allowing registered users to receive automated voice alerts.
+SmartBoot Response is a Discord-connected alerting and phone notification service for SmartBoot systems. It connects Discord account management with a FreePBX/Asterisk telephony backend.
 
 Built by **Midnight Labs**.
 
 ## Features
 
-- **Phone verification** — Register a phone number or PBX extension and verify it with an automated call.
-- **Voice alerts** — Receive system alerts through automated phone calls.
-- **Text-to-speech** — Alert messages are generated locally using Piper TTS.
-- **Account management** — Register, update, view, and remove verified destinations.
-- **Alert forwarding** — Link accounts so alerts can be delivered to another registered destination.
-- **Configurable voices** — Choose the voice used for spoken alerts.
-- **HTTP API and WebSocket** — Integrate supported systems with the alert service.
-- **Demo alerts** — Send demonstration alerts to a configured Discord webhook.
+- Phone registration and verification
+- Automated voice alerts through FreePBX
+- Local text-to-speech with Piper
+- Account management and alert forwarding
+- Configurable TTS voices
+- HTTP API and WebSocket integrations
+- Demo alerts through a configured Discord webhook
+
+## Requirements
+
+- Docker Engine and Docker Compose
+- A Discord application and bot token
+- A FreePBX/Asterisk server with a dedicated AMI account
+- A dedicated SFTP account on the PBX
+- Network access from the host to the PBX AMI and SFTP ports
+
+## Quick start
+
+Clone the public branch:
+
+```bash
+git clone -b public-discordbot https://github.com/MidnightLabsUS/SmartBoot-Response.git
+cd SmartBoot-Response
+cp .env.example .env
+```
+
+Edit `.env` and configure the Discord and PBX settings. Place your PBX SSH private key at `./secrets/pbx_ed25519`, then restrict its permissions:
+
+```bash
+chmod 600 secrets/pbx_ed25519
+docker compose up -d --build
+```
+
+The API listens on port `3000` inside the container. Configure your reverse proxy and HTTPS before exposing it publicly.
+
+## Configuration
+
+See [`.env.example`](.env.example) for all supported environment variables.
+
+Important settings:
+
+| Variable | Purpose |
+|---|---|
+| `DISCORD_TOKEN` | Discord bot token |
+| `PBX_HOST` | FreePBX server address |
+| `PBX_AMI_USERNAME` / `PBX_AMI_SECRET` | Dedicated AMI credentials |
+| `PBX_SFTP_USERNAME` | Dedicated SFTP username |
+| `PBX_SFTP_PRIVATE_KEY` | Path to the SFTP private key inside the container |
+| `PBX_AUDIO_PATH` | Destination directory as seen by the SFTP account |
+| `ADMIN_DISCORD_IDS` | Comma-separated administrator Discord user IDs |
+| `ADMIN_ROLE_IDS` | Comma-separated administrator role IDs |
+
+The SFTP destination must be writable by the dedicated SFTP account. The path is relative to the SFTP account's visible filesystem; for a chroot exposing an `uploads` directory, use `/uploads`.
 
 ## Discord commands
 
 | Command | Description |
 |---|---|
-| `/setup` | Register a phone number or PBX extension. |
-| `/verify` | Verify a destination using the code from the automated call. |
-| `/resend-code` | Resend a verification call. |
-| `/cancel-setup` | Cancel a pending registration. |
-| `/accounts` | View your registered accounts. |
-| `/update-account` | Change and re-verify a destination. |
-| `/remove-account` | Remove one of your accounts. |
-| `/link-account` | Forward alerts between accounts you own. |
-| `/unlink-account` | Remove an alert-forwarding link. |
-| `/account-links` | View your forwarding links. |
-| `/set-voice` | Choose your alert voice. |
-| `/alerts` | View your 10 most recent delivered alerts. |
-| `/admin` | View account totals and recent system activity (administrators only). |
-| `/lookup` | Search by account ID, Discord ID, or phone number (administrators only). |
-| `/status` | Check Discord, API, database, and FreePBX AMI connectivity. |
+| `/setup` | Register a phone number or PBX extension |
+| `/verify` | Verify a destination using the call code |
+| `/resend-code` | Resend a verification call |
+| `/cancel-setup` | Cancel a pending registration |
+| `/accounts` | View registered accounts |
+| `/update-account` | Change and re-verify a destination |
+| `/remove-account` | Remove a registered account |
+| `/link-account` | Forward alerts between accounts |
+| `/unlink-account` | Remove an alert-forwarding link |
+| `/account-links` | View forwarding links |
+| `/set-voice` | Choose the alert voice |
+| `/alerts` | View recent delivered alerts |
+| `/admin` | View administrative statistics (admins only) |
+| `/lookup` | Search accounts (admins only) |
+| `/status` | Check service connectivity |
 
-## How it works
-
-1. A user registers a phone number or PBX extension through Discord.
-2. SmartBoot Response generates a verification message and places an automated call through FreePBX.
-3. Once verified, supported SmartBoot integrations can submit alerts to the API.
-4. The service generates spoken alert audio with Piper and delivers the call through the configured PBX.
-
-## Integrations
-
-The service exposes an HTTP API and WebSocket interface for compatible systems.
-
-### HTTP endpoints
+## API
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/healthcheck` | Basic application health check. |
-| `POST /api/v1/alert` | Submit an alert using the legacy alert endpoint. |
-| `POST /api/v1/webhook/:brand/:accountNumber` | Submit a brand-specific alert. |
-| `POST /api/v1/tts` | Request a text-to-speech phone message. |
-| `/api/v1/websocket/:accountNumber` | Connect an account to the WebSocket interface. |
+| `GET /api/healthcheck` | Health check |
+| `POST /api/v1/alert` | Submit an alert |
+| `POST /api/v1/webhook/:brand/:accountNumber` | Submit a brand-specific alert |
+| `POST /api/v1/tts` | Request a text-to-speech phone message |
+| `/api/v1/websocket/:accountNumber` | WebSocket connection |
 
-The API listens on port `3000` by default. Place it behind a reverse proxy with HTTPS before exposing it publicly.
-
-## Technology
-
-- Node.js
-- Discord.js
-- SQLite
-- Express and WebSocket
-- FreePBX / Asterisk
-- Piper TTS
-- Docker
-
-## Deployment
-
-This repository contains the application and Docker configuration. Deployment requires a Discord application/bot, a configured FreePBX server, and the required AMI and SFTP access.
-
-1. Clone the repository and check out the `dev-discordbot` branch.
-2. Copy `.env.example` to `.env` and configure the Discord and PBX settings.
-3. Configure the dedicated FreePBX AMI account and SFTP user.
-4. Place the PBX SSH private key at `./secrets/pbx_ed25519` and restrict its permissions.
-5. Configure the PBX dialplan and audio directory as described below.
-6. Start the service:
-
-```bash
-docker compose up -d --build
-```
-
-### FreePBX requirements
-
-- Create a dedicated AMI manager account with only the permissions required by the service.
-- Restrict AMI and SSH/SFTP access to the SmartBoot host's public IP.
-- Do not expose AMI broadly to the internet.
-- Configure the dialplan to play the generated audio file supplied by the service.
-- Set `PBX_AUDIO_PATH` to the path visible inside the SFTP user's chroot.
-
-See `.env.example` for the available environment variables. Keep `.env`, webhook URLs, AMI credentials, and private SSH keys out of source control.
-
-## Administrator access
-
-Set `ADMIN_DISCORD_IDS` and/or `ADMIN_ROLE_IDS` in `.env` to comma-separated Discord user IDs and role IDs. Only matching users can run `/admin` and `/lookup`; lookup results are private. Leave both unset to disable administrator commands.
+Use HTTPS through a reverse proxy for public API access. Keep the PBX AMI and SFTP services private and restrict access to trusted source IPs.
 
 ## Data and operations
 
-SQLite data is stored in the `smartboot-data` Docker volume. Delivered alerts are recorded in the database for `/alerts` and `/admin`. History starts accumulating after this version is deployed; older alerts are not backfilled.
-
-Useful commands:
+SQLite data is stored in the persistent `smartboot-data` Docker volume.
 
 ```bash
 docker compose logs -f
@@ -114,12 +107,17 @@ docker compose down
 
 ## Security
 
+- Never commit `.env`, tokens, webhook URLs, AMI credentials, or SSH private keys.
+- Keep `secrets/` private and restrict private-key permissions.
 - Use dedicated, least-privilege PBX credentials.
-- Restrict AMI and SFTP access by source IP.
-- Use HTTPS for public API traffic.
-- Never commit secrets, tokens, webhook URLs, or private keys.
+- Restrict AMI and SFTP access by source IP; do not expose AMI to the public internet.
 - Back up the persistent database volume.
+- Review your configuration before exposing the API.
+
+## Contributing
+
+Issues and pull requests are welcome. Please avoid including real phone numbers, account identifiers, credentials, webhook URLs, or other private information in issues and logs.
 
 ## License
 
-SmartBoot Response is licensed under the GNU General Public License v3.0 or later. See [LICENSE](LICENSE).
+GNU General Public License v3.0 or later. See [LICENSE](LICENSE).
