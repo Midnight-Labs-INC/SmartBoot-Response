@@ -102,7 +102,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 
 					// Account exists and is verified
 					// Send the alert
-					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), buildAlertSpeech(event, placeName, zoneNumber, zoneName)).then((output) => {
+					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), withRepeatPrompt(buildAlertSpeech(event, placeName, zoneNumber, zoneName))).then((output) => {
 						runCommand(`ffmpeg -y -i /tmp/${transaction}.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${transaction}-alert.wav`).then(() => {
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
