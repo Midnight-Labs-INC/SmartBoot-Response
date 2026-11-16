@@ -23,4 +23,5 @@ function sanitizeForTTS(input) {
 function buildAlertSpeech(event, location, zoneNumber, zoneName) {
 	return sanitizeForTTS(ttsMessage.template.replace("{event}", event).replace("{location}", location).replace("{zone}", [zoneNumber, zoneName].filter(Boolean).join(" ")));
 }
-module.exports={sanitizeForTTS,buildAlertSpeech};
+function withRepeatPrompt(input){return `${sanitizeForTTS(input)} Press 1 to repeat this message.`;}
+module.exports={sanitizeForTTS,buildAlertSpeech,withRepeatPrompt};

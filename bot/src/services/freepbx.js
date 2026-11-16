@@ -53,7 +53,7 @@ async function originate(phone,audioFile){
   await upload(host,user,key,port,audioFile,remote);
   const playback=`smartboot/${path.basename(name,".wav")}`;
   const callerId=String(process.env.PBX_CALLER_ID||"SmartBoot").replace(/[\r\n]/g,"");
-  const action=["Action: Originate",`Channel: Local/${phone}@from-internal`,"Context: roblox","Exten: s","Priority: 1","Timeout: 30000",`CallerID: ${callerId}`,`Variable: AUDIO_FILE=${playback}`,"Async: true","ActionID: smartboot-"+Date.now()].join("\r\n");
+  const action=["Action: Originate",`Channel: Local/${phone}@from-internal`,"Context: roblox","Exten: s","Priority: 1","Timeout: 30000",`CallerID: ${callerId}`,`Variable: AUDIO_FILE=${playback}`,"EarlyMedia: false","Async: true","ActionID: smartboot-"+Date.now()].join("\r\n");
   return ami(action);
 }
 async function checkConnection(){await ami('Action: Ping');return true;}
