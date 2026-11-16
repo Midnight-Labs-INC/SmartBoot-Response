@@ -1,4 +1,4 @@
-const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/freepbx");const {buildAlertSpeech,sanitizeForTTS}=require("./speech");let handledTransactions=[];let client;
+const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/freepbx");const {buildAlertSpeech,sanitizeForTTS,withRepeatPrompt}=require("./speech");let handledTransactions=[];let client;
 function generateAccountNumber() {
 	let accountNumber = Math.floor(Math.random() * 10000000000);
 	db.get("SELECT * FROM accounts WHERE id = ?", accountNumber, (err, row) => {
@@ -28,7 +28,7 @@ function sendDemo(accountNumber, transaction, placeName, systemName, zoneNumber,
 			}
 			// Account exists and is verified
 			// Send the alert
-			runCommand(ttsCommands[0].command.replace("%s", `/tmp/${transaction}.wav`), buildAlertSpeech(event, placeName, zoneNumber, zoneName)).then((output) => {
+			runCommand(ttsCommands[0].command.replace("%s", `/tmp/${transaction}.wav`), withRepeatPrompt(buildAlertSpeech(event, placeName, zoneNumber, zoneName))).then((output) => {
 				runCommand(`ffmpeg -y -i /tmp/${transaction}.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${transaction}-alert.wav`).then(() => {
 					runCommand(`rm /tmp/${transaction}.wav`)
 					// strip extension from filename
@@ -185,7 +185,7 @@ function sendTTS(accountNumber, transaction, text) {
 				} else if (row) {
 					// Account exists and is verified
 					// Send the alert
-					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), `${process.env.CALL_PREFIX_TEXT} ${textFiltered}`).then((output) => {
+					runCommand(ttsCommands[row.ttsOverride].command.replace("%s", `/tmp/${transaction}.wav`), withRepeatPrompt(`${process.env.CALL_PREFIX_TEXT||""} ${textFiltered}`)).then((output) => {
 						runCommand(`ffmpeg -y -i /tmp/${transaction}.wav -ar 8000 -ac 1 -c:a pcm_s16le /tmp/${transaction}-tts.wav`).then(() => {
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
