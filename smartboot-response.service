@@ -1,0 +1,15 @@
+[Unit]
+Description=SmartBoot Response
+After=network.target
+
+[Service]
+Type=simple
+User=smartboot
+WorkingDirectory=/opt/smartboot-response
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
