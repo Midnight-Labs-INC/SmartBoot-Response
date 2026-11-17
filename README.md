@@ -60,27 +60,128 @@ The API listens on port `3000` by default. Place it behind a reverse proxy with 
 
 ## Technology
 
-- Node.js
+- Node.js 22+
 - Discord.js
 - SQLite
 - Express and WebSocket
 - FreePBX / Asterisk
 - Piper TTS
-- Docker
+- FFmpeg
+- OpenSSH/SFTP
 
-## Deployment
+## Native deployment
 
-This repository contains the application and Docker configuration. Deployment requires a Discord application/bot, a configured FreePBX server, and the required AMI and SFTP access.
+This branch runs directly on Linux and does **not** require Docker.
 
-1. Clone the repository and check out the `dev-discordbot` branch.
-2. Copy `.env.example` to `.env` and configure the Discord and PBX settings.
-3. Configure the dedicated FreePBX AMI account and SFTP user.
-4. Place the PBX SSH private key at `./secrets/pbx_ed25519` and restrict its permissions.
-5. Configure the PBX dialplan and audio directory as described below.
-6. Start the service:
+### Requirements
+
+- Linux server
+- Node.js 22+
+- npm
+- Python 3 and `venv`
+- FFmpeg
+- OpenSSH client
+- FreePBX/Asterisk with AMI and SFTP access
+
+### Install
+
+Clone the repository and switch to this branch:
 
 ```bash
-docker compose up -d --build
+git clone https://github.com/MidnightLabsUS/Response-Dev.git
+cd Response-Dev
+git checkout no-docker
+```
+
+Install system packages:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg openssh-client python3 python3-venv build-essential
+```
+
+Install Node dependencies:
+
+```bash
+npm ci --omit=dev
+```
+
+Install Piper and the voice model:
+
+```bash
+sudo python3 -m venv /opt/piper
+sudo /opt/piper/bin/pip install --no-cache-dir piper-tts
+sudo mkdir -p /opt/smartboot-response/models
+sudo /opt/piper/bin/python -m piper.download_voices en_US-lessac-medium
+sudo cp /opt/piper/lib/python*/site-packages/piper/voices/en_US-lessac-medium.onnx /opt/smartboot-response/models/
+sudo cp /opt/piper/lib/python*/site-packages/piper/voices/en_US-lessac-medium.onnx.json /opt/smartboot-response/models/
+```
+
+If the voice files are installed somewhere else, set `PIPER_MODEL` in `.env` to their actual path.
+
+### Configure
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Set the Discord, PBX, SFTP, and administrator values.
+
+Create the secrets directory and install the PBX SSH key:
+
+```bash
+mkdir -p secrets
+chmod 700 secrets
+chmod 600 secrets/pbx_ed25519
+```
+
+The public key can be stored beside it as `secrets/pbx_ed25519.pub`.
+
+Keep `.env` and `secrets/` out of Git.
+
+### Test
+
+Run the service directly:
+
+```bash
+npm start
+```
+
+Check the native installation:
+
+```bash
+npm run check
+```
+
+### systemd
+
+Copy the included service:
+
+```bash
+sudo useradd --system --home-dir /opt/smartboot-response --shell /usr/sbin/nologin smartboot 2>/dev/null || true
+sudo chown -R smartboot:smartboot /opt/smartboot-response
+sudo cp smartboot-response.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now smartboot-response
+```
+
+View logs:
+
+```bash
+sudo journalctl -u smartboot-response -f
+```
+
+Restart:
+
+```bash
+sudo systemctl restart smartboot-response
+```
+
+Status:
+
+```bash
+sudo systemctl status smartboot-response
 ```
 
 ### FreePBX requirements
@@ -91,34 +192,21 @@ docker compose up -d --build
 - Configure the dialplan to play the generated audio file supplied by the service.
 - Set `PBX_AUDIO_PATH` to the path visible inside the SFTP user's chroot.
 
-See `.env.example` for the available environment variables. Keep `.env`, webhook URLs, AMI credentials, and private SSH keys out of source control.
+The application uploads generated WAV files through SFTP, then originates the call through AMI.
 
-## Administrator access
+### Data
 
-Set `ADMIN_DISCORD_IDS` and/or `ADMIN_ROLE_IDS` in `.env` to comma-separated Discord user IDs and role IDs. Only matching users can run `/admin` and `/lookup`; lookup results are private. Leave both unset to disable administrator commands.
+SQLite data is stored in `data/database.db`.
 
-## Data and operations
+Back up the `data/` directory when migrating the service.
 
-SQLite data is stored in the `smartboot-data` Docker volume. Delivered alerts are recorded in the database for `/alerts` and `/admin`. History starts accumulating after this version is deployed; older alerts are not backfilled.
-
-Useful commands:
-
-```bash
-docker compose logs -f
-docker compose restart smartboot-discordbot
-docker compose up -d --build
-docker compose down
-```
-
-**Do not run `docker compose down -v` unless you intend to delete the persistent database volume.**
-
-## Security
+### Security
 
 - Use dedicated, least-privilege PBX credentials.
 - Restrict AMI and SFTP access by source IP.
 - Use HTTPS for public API traffic.
 - Never commit secrets, tokens, webhook URLs, or private keys.
-- Back up the persistent database volume.
+- Back up the SQLite database.
 
 ## License
 
